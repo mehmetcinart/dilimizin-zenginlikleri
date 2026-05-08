@@ -1565,9 +1565,13 @@ function gosterSonucBalon(dogru, metin) {
 function gosterSonrakiBtn() {
   const btn = document.getElementById("sonraki-btn");
   const sonSoru = durum.soruIndex >= durum.sorular.length - 1;
-  btn.textContent = sonSoru ? "Ana Sayfaya Dön ⌂" : "Sonraki Soru ›";
-  btn.onclick     = sonSoru ? sonSoruTamamla : sonrakiSoru;
-  btn.style.display = "block";
+  if (sonSoru) {
+    btn.style.display = "none";
+  } else {
+    btn.textContent = "Sonraki Soru ›";
+    btn.onclick = sonrakiSoru;
+    btn.style.display = "block";
+  }
 }
 
 function sonSoruTamamla() {
@@ -1635,6 +1639,11 @@ function yenidenOyna() { oyunuBaslat(); }
 function anaEkrana()   { clearInterval(durum.geriSayim); anaEkraniGoster(); }
 
 function testiSonlandirOnay() {
+  const sonSoru = durum.soruIndex >= durum.sorular.length - 1;
+  if (sonSoru && durum.cevaplandi) {
+    sonSoruTamamla();
+    return;
+  }
   document.getElementById("onay-overlay").classList.add("acik");
 }
 function testiOnayKapat() {
