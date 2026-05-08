@@ -590,6 +590,19 @@
     .auth-ayrac::before, .auth-ayrac::after {
       content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.1);
     }
+    .auth-misafir {
+      padding: 10px; border-radius: 12px;
+      border: 1px dashed rgba(255,209,85,0.4);
+      background: rgba(255,209,85,0.05); color: rgba(255,209,85,0.8);
+      font-size: 13px; cursor: pointer; transition: all 0.22s;
+      font-family: 'Lato', sans-serif; text-align: center; font-weight: 700;
+    }
+    .auth-misafir:hover { background: rgba(255,209,85,0.12); border-color: rgba(255,209,85,0.7); }
+    .misafir-uyari-badge {
+      background: rgba(255,209,85,0.15); border: 1px solid rgba(255,209,85,0.35);
+      color: rgba(255,209,85,0.9); border-radius: 20px;
+      padding: 3px 10px; font-size: 11px; font-weight: 700; white-space: nowrap;
+    }
 
     /* ════════════════════════════════════════════════════
        PUAN TABLOSU SEKMESİ
@@ -766,6 +779,15 @@
       <input class="auth-input" id="sifre-yeni"   type="password" placeholder="Yeni şifre (min. 6 karakter)" />
       <input class="auth-input" id="sifre-yeni2"  type="password" placeholder="Yeni şifre (tekrar)" />
       <button class="auth-submit" onclick="sifreDegistir()">Şifreyi Güncelle</button>
+    </div>
+
+    <!-- Misafir girişi -->
+    <div id="auth-misafir-alan">
+      <div class="auth-ayrac">ya da kayıt olmadan</div>
+      <button class="auth-misafir" onclick="misafirGiris()">👤 Misafir Olarak Oyna</button>
+      <p style="text-align:center;font-size:11px;color:rgba(255,209,85,0.55);margin-top:8px">
+        ⚠️ Misafir puanları puan tablosuna eklenir ancak hesabınız kaydedilmez.
+      </p>
     </div>
   </div>
 </div>
@@ -1372,6 +1394,7 @@ function oyunuBaslat() {
 
   oyunEkrani("s1-oyun");
   panelGoster(false);
+  misafirToast();
   soruGoster();
 }
 
@@ -1637,6 +1660,22 @@ function kbGuncelle() {
     kutu.innerHTML = `<button class="kb-giris" onclick="authModalAc()">🔑 Giriş Yap / Kayıt Ol</button>`;
     return;
   }
+  if (mevcutKullanici.isAnonymous) {
+    const ad = "Misafir_" + mevcutKullanici.uid.slice(0, 5).toUpperCase();
+    kutu.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div class="kb-avatar">👤</div>
+        <div>
+          <div class="kb-isim">${ad}</div>
+          <div class="kb-puan" id="kb-toplam-puan">Puan yükleniyor…</div>
+        </div>
+        <span class="misafir-uyari-badge">⚠️ Puanlar tabloya eklenir</span>
+        <button class="kb-giris" style="font-size:11px;padding:5px 14px" onclick="authModalAc()">Kayıt Ol</button>
+        <button class="kb-cikis" onclick="cikisYap()">Çıkış</button>
+      </div>`;
+    kullaniciPuanYukle();
+    return;
+  }
   const harf = (mevcutKullanici.displayName || mevcutKullanici.email || "?")[0].toUpperCase();
   const emailKullanici = mevcutKullanici.providerData[0]?.providerId === "password";
   kutu.innerHTML = `
@@ -1671,6 +1710,7 @@ function authModalAc() {
   document.getElementById("sekme-kayit-btn").style.display = "";
   document.getElementById("sekme-sifre-btn").style.display = "none";
   document.getElementById("auth-altyazi").style.display = "";
+  document.getElementById("auth-misafir-alan").style.display = "";
   authSekme("giris", document.getElementById("sekme-giris-btn"));
   document.getElementById("auth-overlay").classList.add("acik");
 }
@@ -1681,6 +1721,7 @@ function sifreModalAc() {
   document.getElementById("sekme-kayit-btn").style.display = "none";
   document.getElementById("sekme-sifre-btn").style.display = "";
   document.getElementById("auth-altyazi").style.display = "none";
+  document.getElementById("auth-misafir-alan").style.display = "none";
   authSekme("sifre", document.getElementById("sekme-sifre-btn"));
   document.getElementById("auth-overlay").classList.add("acik");
 }
@@ -1758,8 +1799,39 @@ function trHata(kod) {
     "auth/popup-blocked":           "Açılır pencere engellendi. Tarayıcıda izin verin.",
     "auth/cancelled-popup-request": "Giriş isteği iptal edildi.",
     "auth/requires-recent-login":   "Güvenlik için önce çıkış yapıp tekrar giriş yapın.",
+    "auth/operation-not-allowed":   "Bu giriş yöntemi etkinleştirilmemiş. Firebase Console'dan etkinleştirin.",
   };
   return m[kod] || "Bir hata oluştu: " + kod;
+}
+
+async function misafirGiris() {
+  if (!auth) { authHata("Firebase yapılandırılmamış."); return; }
+  try {
+    const kred = await auth.signInAnonymously();
+    const uid  = kred.user.uid;
+    const ad   = "Misafir_" + uid.slice(0, 5).toUpperCase();
+    const ref  = db.collection("kullanicilar").doc(uid);
+    const doc  = await ref.get();
+    if (!doc.exists) {
+      await ref.set({
+        ad, email: null, misafir: true,
+        toplamPuan: 0, oyunSayisi: 0, enIyiSkor: 0,
+        kayitTarihi: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    authModalKapat();
+  } catch(e) {
+    authHata(trHata(e.code));
+  }
+}
+
+function misafirToast() {
+  if (!mevcutKullanici?.isAnonymous) return;
+  const t = document.createElement("div");
+  t.style.cssText = "position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:rgba(30,26,58,0.97);border:1px solid rgba(255,209,85,0.5);color:rgba(255,209,85,0.9);padding:12px 22px;border-radius:14px;font-size:13px;font-weight:700;z-index:9999;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.5);max-width:90vw";
+  t.textContent = "⚠️ Misafir olarak oynuyorsunuz — puanınız puan tablosuna eklenecek!";
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
 }
 
 async function googleIleGiris() {
@@ -1817,9 +1889,13 @@ async function firebaseSkorKaydet(puan) {
     await db.runTransaction(async t => {
       const doc  = await t.get(ref);
       const data = doc.exists ? doc.data() : { toplamPuan:0, oyunSayisi:0, enIyiSkor:0 };
+      const adAdi = mevcutKullanici.isAnonymous
+        ? (doc.exists ? doc.data().ad : "Misafir_" + mevcutKullanici.uid.slice(0,5).toUpperCase())
+        : (mevcutKullanici.displayName || mevcutKullanici.email);
       t.set(ref, {
-        ad:         mevcutKullanici.displayName || mevcutKullanici.email,
-        email:      mevcutKullanici.email,
+        ad:         adAdi,
+        email:      mevcutKullanici.email || null,
+        misafir:    mevcutKullanici.isAnonymous || false,
         toplamPuan: (data.toplamPuan || 0) + puan,
         oyunSayisi: (data.oyunSayisi || 0) + 1,
         enIyiSkor:  Math.max(data.enIyiSkor || 0, puan),
@@ -1886,7 +1962,7 @@ async function lbYukle() {
           <td>
             <div class="lb-isim-avatar">
               <div class="lb-avatar-kucuk">${harf}</div>
-              <span class="lb-isim">${d.ad || d.email || "İsimsiz"}${benim ? " <span style='color:var(--altin);font-size:11px'>(Sen)</span>" : ""}</span>
+              <span class="lb-isim">${d.ad || d.email || "İsimsiz"}${benim ? " <span style='color:var(--altin);font-size:11px'>(Sen)</span>" : ""}${d.misafir ? " <span style='color:rgba(255,209,85,0.5);font-size:11px'>👤</span>" : ""}</span>
             </div>
           </td>
           <td><span class="lb-puan-deger">⭐ ${(d.toplamPuan||0).toLocaleString("tr-TR")}</span></td>
