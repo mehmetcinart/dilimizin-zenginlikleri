@@ -591,7 +591,8 @@
       content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.1);
     }
     .auth-misafir {
-      padding: 10px; border-radius: 12px;
+      display: block; margin: 0 auto;
+      padding: 10px 32px; border-radius: 12px;
       border: 1px dashed rgba(255,209,85,0.4);
       background: rgba(255,209,85,0.05); color: rgba(255,209,85,0.8);
       font-size: 13px; cursor: pointer; transition: all 0.22s;
@@ -782,10 +783,10 @@
     </div>
 
     <!-- Misafir girişi -->
-    <div id="auth-misafir-alan">
-      <div class="auth-ayrac">ya da kayıt olmadan</div>
+    <div id="auth-misafir-alan" style="display:flex;flex-direction:column;align-items:center;gap:8px">
+      <div class="auth-ayrac" style="width:100%">ya da kayıt olmadan</div>
       <button class="auth-misafir" onclick="misafirGiris()">👤 Misafir Olarak Oyna</button>
-      <p style="text-align:center;font-size:11px;color:rgba(255,209,85,0.55);margin-top:8px">
+      <p style="text-align:center;font-size:11px;color:rgba(255,209,85,0.55)">
         ⚠️ Misafir puanları puan tablosuna eklenir ancak hesabınız kaydedilmez.
       </p>
     </div>
@@ -1372,6 +1373,7 @@ document.querySelectorAll(".zorluk-btn").forEach(btn => {
 //  OYUN BAŞLAT
 // ══════════════════════════════════════════════════════════════
 function oyunuBaslat() {
+  if (!mevcutKullanici) { authModalAc(); return; }
   let havuz = [...SORULAR];
   if (durum.seciliKategori !== "tumu") havuz = havuz.filter(s => s.kategori === durum.seciliKategori);
   if (durum.seciliZorluk   !== "tumu") havuz = havuz.filter(s => s.zorluk   === durum.seciliZorluk);
@@ -1661,16 +1663,13 @@ function kbGuncelle() {
     return;
   }
   if (mevcutKullanici.isAnonymous) {
-    const ad = "Misafir_" + mevcutKullanici.uid.slice(0, 5).toUpperCase();
     kutu.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:8px">
         <div class="kb-avatar">👤</div>
         <div>
-          <div class="kb-isim">${ad}</div>
+          <div class="kb-isim">Misafir</div>
           <div class="kb-puan" id="kb-toplam-puan">Puan yükleniyor…</div>
         </div>
-        <span class="misafir-uyari-badge">⚠️ Puanlar tabloya eklenir</span>
-        <button class="kb-giris" style="font-size:11px;padding:5px 14px" onclick="authModalAc()">Kayıt Ol</button>
         <button class="kb-cikis" onclick="cikisYap()">Çıkış</button>
       </div>`;
     kullaniciPuanYukle();
@@ -1710,7 +1709,7 @@ function authModalAc() {
   document.getElementById("sekme-kayit-btn").style.display = "";
   document.getElementById("sekme-sifre-btn").style.display = "none";
   document.getElementById("auth-altyazi").style.display = "";
-  document.getElementById("auth-misafir-alan").style.display = "";
+  document.getElementById("auth-misafir-alan").style.display = "flex";
   authSekme("giris", document.getElementById("sekme-giris-btn"));
   document.getElementById("auth-overlay").classList.add("acik");
 }
@@ -1809,7 +1808,7 @@ async function misafirGiris() {
   try {
     const kred = await auth.signInAnonymously();
     const uid  = kred.user.uid;
-    const ad   = "Misafir_" + uid.slice(0, 5).toUpperCase();
+    const ad   = "Misafir";
     const ref  = db.collection("kullanicilar").doc(uid);
     const doc  = await ref.get();
     if (!doc.exists) {
@@ -1890,7 +1889,7 @@ async function firebaseSkorKaydet(puan) {
       const doc  = await t.get(ref);
       const data = doc.exists ? doc.data() : { toplamPuan:0, oyunSayisi:0, enIyiSkor:0 };
       const adAdi = mevcutKullanici.isAnonymous
-        ? (doc.exists ? doc.data().ad : "Misafir_" + mevcutKullanici.uid.slice(0,5).toUpperCase())
+        ? "Misafir"
         : (mevcutKullanici.displayName || mevcutKullanici.email);
       t.set(ref, {
         ad:         adAdi,
