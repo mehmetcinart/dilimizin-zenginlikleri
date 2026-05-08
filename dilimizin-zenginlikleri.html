@@ -720,10 +720,10 @@
 
 <!-- SKOR PANELİ -->
 <div id="skor-panel">
-  <div class="sp-baslik">📊 Son Oyun</div>
+  <div class="sp-baslik">📊 Performans</div>
 
   <div class="sp-satir">
-    <div class="sp-etiket"><span class="sp-etiket-ikon">⭐</span>Anlık Puan</div>
+    <div class="sp-etiket"><span class="sp-etiket-ikon">⭐</span>Toplam Puan</div>
     <div class="sp-deger vurgu" id="sp-puan">0</div>
   </div>
 
@@ -1328,15 +1328,24 @@ function anaEkraniGoster() {
   panelGoster(true);
 }
 
-function anaEkranPanelGuncelle() {
+async function anaEkranPanelGuncelle() {
   const rekor   = parseInt(localStorage.getItem(LS_REKOR) || "0");
   const sonJSON = localStorage.getItem(LS_SON_OYUN);
   const son     = sonJSON ? JSON.parse(sonJSON) : null;
 
   document.getElementById("sp-rekor").textContent = rekor;
 
+  // Toplam puanı Firestore'dan çek
+  let toplamPuan = 0;
+  if (mevcutKullanici && db) {
+    try {
+      const doc = await db.collection("kullanicilar").doc(mevcutKullanici.uid).get();
+      if (doc.exists) toplamPuan = doc.data().toplamPuan || 0;
+    } catch(_) {}
+  }
+  document.getElementById("sp-puan").textContent = mevcutKullanici ? toplamPuan : (son ? son.puan : "–");
+
   if (son) {
-    document.getElementById("sp-puan").textContent   = son.puan;
     document.getElementById("sp-soru").textContent   = son.toplam + " soru";
     document.getElementById("sp-dogru").textContent  = son.dogru;
     document.getElementById("sp-yanlis").textContent = son.yanlis;
@@ -1345,7 +1354,6 @@ function anaEkranPanelGuncelle() {
     document.getElementById("sp-isi").style.width    = dogruluk + "%";
     document.getElementById("sp-isi-metin").textContent = "Doğruluk: " + dogruluk + "%";
   } else {
-    document.getElementById("sp-puan").textContent   = "–";
     document.getElementById("sp-soru").textContent   = "–";
     document.getElementById("sp-dogru").textContent  = "–";
     document.getElementById("sp-yanlis").textContent = "–";
