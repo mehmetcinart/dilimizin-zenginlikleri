@@ -884,7 +884,6 @@
       <div style="display:flex;align-items:center;gap:8px">
         <div class="puan-kutu">⭐ <span id="anlık-puan">0</span></div>
         <span class="zorluk-badge" id="soru-zorluk-badge"></span>
-        <button class="bitir-btn" onclick="testiSonlandirOnay()">✕ Testi Bitir</button>
       </div>
     </div>
     <div class="sure-wrapper">
@@ -897,6 +896,7 @@
     <div class="secenekler"   id="secenekler-kutu"></div>
     <div class="sonuc-balon"  id="sonuc-balon"></div>
     <button class="btn btn-altin sonraki-btn" id="sonraki-btn" onclick="sonrakiSoru()" style="display:none;">Sonraki Soru ›</button>
+    <button class="btn btn-outline sonraki-btn" id="bitir-alt-btn" onclick="testiSonlandirOnay()" style="display:none;">✕ Testi Bitir</button>
   </div>
 
   <!-- Sonuç -->
@@ -1479,7 +1479,8 @@ function soruGoster() {
   zb.className = "zorluk-badge " + s.zorluk;
   document.getElementById("soru-metni").innerHTML    = s.soru;
   document.getElementById("sonuc-balon").className   = "sonuc-balon";
-  document.getElementById("sonraki-btn").style.display = "none";
+  document.getElementById("sonraki-btn").style.display   = "none";
+  document.getElementById("bitir-alt-btn").style.display = "none";
 
   document.querySelectorAll(".ilerleme-cubuk").forEach((c,i) => {
     c.className = "ilerleme-cubuk" + (i === durum.soruIndex ? " aktif" : "");
@@ -1571,15 +1572,9 @@ function gosterSonucBalon(dogru, metin) {
 }
 
 function gosterSonrakiBtn() {
-  const btn = document.getElementById("sonraki-btn");
   const sonSoru = durum.soruIndex >= durum.sorular.length - 1;
-  if (sonSoru) {
-    btn.style.display = "none";
-  } else {
-    btn.textContent = "Sonraki Soru ›";
-    btn.onclick = sonrakiSoru;
-    btn.style.display = "block";
-  }
+  document.getElementById("sonraki-btn").style.display  = sonSoru ? "none"  : "block";
+  document.getElementById("bitir-alt-btn").style.display = sonSoru ? "block" : "none";
 }
 
 function sonSoruTamamla() {
