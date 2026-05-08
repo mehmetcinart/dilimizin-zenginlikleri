@@ -1558,8 +1558,25 @@ function gosterSonrakiBtn() {
   const btn = document.getElementById("sonraki-btn");
   const sonSoru = durum.soruIndex >= durum.sorular.length - 1;
   btn.textContent = sonSoru ? "Ana Sayfaya Dön ⌂" : "Sonraki Soru ›";
-  btn.onclick     = sonSoru ? anaEkrana : sonrakiSoru;
+  btn.onclick     = sonSoru ? sonSoruTamamla : sonrakiSoru;
   btn.style.display = "block";
+}
+
+function sonSoruTamamla() {
+  clearInterval(durum.geriSayim);
+  sonOyunuKaydet();
+  rekorKaydet(durum.puan);
+
+  const puan = durum.puan;
+  const toast = document.createElement("div");
+  toast.style.cssText = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(145deg,#2a2050,#1E1A3A);border:2px solid rgba(255,209,85,0.6);color:var(--altin-acik);padding:32px 48px;border-radius:24px;font-family:'Lato',sans-serif;font-weight:700;z-index:9999;text-align:center;box-shadow:0 12px 48px rgba(0,0,0,0.7);pointer-events:none";
+  toast.innerHTML = `<div style="font-size:40px;margin-bottom:10px">🏆</div><div style="font-size:15px;opacity:0.7;margin-bottom:6px">Test Tamamlandı!</div><div style="font-size:48px;color:#FFD155">${puan}</div><div style="font-size:13px;opacity:0.6;margin-top:4px">puan kazandın</div>`;
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.remove();
+    anaEkraniGoster();
+  }, 3000);
 }
 
 function sonrakiSoru() {
