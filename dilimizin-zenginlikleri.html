@@ -574,6 +574,22 @@
       font-size: 13px; color: #f08080; display: none;
     }
     .auth-hata.goster { display: block; }
+    .auth-google {
+      padding: 11px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.85);
+      font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.22s;
+      font-family: 'Lato', sans-serif; display: flex; align-items: center;
+      justify-content: center; gap: 8px;
+    }
+    .auth-google:hover { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.3); }
+    .auth-ayrac {
+      display: flex; align-items: center; gap: 10px;
+      color: rgba(255,255,255,0.3); font-size: 12px; margin: 2px 0;
+    }
+    .auth-ayrac::before, .auth-ayrac::after {
+      content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.1);
+    }
 
     /* ════════════════════════════════════════════════════
        PUAN TABLOSU SEKMESİ
@@ -711,22 +727,45 @@
     <button class="auth-kapat" onclick="authModalKapat()">✕</button>
     <div class="auth-logo">📜</div>
     <h2 class="auth-baslik">Dilimizin Zenginlikleri</h2>
-    <p class="auth-altyazi">Giriş yap, puan kazan, sıralamada yüksel!</p>
+    <p class="auth-altyazi" id="auth-altyazi">Giriş yap, puan kazan, sıralamada yüksel!</p>
     <div class="auth-sekme-bar">
-      <button class="auth-sekme aktif" onclick="authSekme('giris',this)">Giriş Yap</button>
-      <button class="auth-sekme"       onclick="authSekme('kayit',this)">Kayıt Ol</button>
+      <button class="auth-sekme aktif" id="sekme-giris-btn" onclick="authSekme('giris',this)">Giriş Yap</button>
+      <button class="auth-sekme"       id="sekme-kayit-btn" onclick="authSekme('kayit',this)">Kayıt Ol</button>
+      <button class="auth-sekme"       id="sekme-sifre-btn" onclick="authSekme('sifre',this)" style="display:none">Şifre Değiştir</button>
     </div>
     <div class="auth-hata" id="auth-hata"></div>
+
+    <!-- Giriş Yap -->
     <div class="auth-form" id="auth-form-giris">
-      <input class="auth-input" id="giris-email"    type="email"    placeholder="E-posta adresi" />
-      <input class="auth-input" id="giris-sifre"    type="password" placeholder="Şifre" />
+      <input class="auth-input" id="giris-email" type="email"    placeholder="E-posta adresi" />
+      <input class="auth-input" id="giris-sifre" type="password" placeholder="Şifre" />
       <button class="auth-submit" onclick="girisYap()">Giriş Yap</button>
+      <div class="auth-ayrac">veya</div>
+      <button class="auth-google" onclick="googleIleGiris()">
+        <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
+        Google ile Giriş Yap
+      </button>
     </div>
+
+    <!-- Kayıt Ol -->
     <div class="auth-form" id="auth-form-kayit" style="display:none">
-      <input class="auth-input" id="kayit-ad"    type="text"     placeholder="Görünen adınız" />
+      <input class="auth-input" id="kayit-ad"    type="text"     placeholder="Görünen adınız (benzersiz olmalı)" />
       <input class="auth-input" id="kayit-email" type="email"    placeholder="E-posta adresi" />
       <input class="auth-input" id="kayit-sifre" type="password" placeholder="Şifre (min. 6 karakter)" />
       <button class="auth-submit" onclick="kayitOl()">Kayıt Ol</button>
+      <div class="auth-ayrac">veya</div>
+      <button class="auth-google" onclick="googleIleGiris()">
+        <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
+        Google ile Kayıt Ol
+      </button>
+    </div>
+
+    <!-- Şifre Değiştir -->
+    <div class="auth-form" id="auth-form-sifre" style="display:none">
+      <input class="auth-input" id="sifre-mevcut" type="password" placeholder="Mevcut şifreniz" />
+      <input class="auth-input" id="sifre-yeni"   type="password" placeholder="Yeni şifre (min. 6 karakter)" />
+      <input class="auth-input" id="sifre-yeni2"  type="password" placeholder="Yeni şifre (tekrar)" />
+      <button class="auth-submit" onclick="sifreDegistir()">Şifreyi Güncelle</button>
     </div>
   </div>
 </div>
@@ -1196,7 +1235,7 @@ let durum = {
   yanlisSayi: 0,
   toplamSure: 0,
   geriSayim: null,
-  kalanSure: 30,
+  kalanSure: 15,
   cevaplandi: false,
 };
 
@@ -1342,7 +1381,7 @@ function oyunuBaslat() {
 function soruGoster() {
   const s = durum.sorular[durum.soruIndex];
   durum.cevaplandi = false;
-  durum.kalanSure  = 30;
+  durum.kalanSure  = 15;
 
   document.getElementById("soru-sayaci").textContent = `Soru ${durum.soruIndex+1} / ${durum.sorular.length}`;
   document.getElementById("anlık-puan").textContent  = durum.puan;
@@ -1374,11 +1413,11 @@ function soruGoster() {
 // ══════════════════════════════════════════════════════════════
 function geriSayimBaslat() {
   clearInterval(durum.geriSayim);
-  durum.kalanSure = 30;
-  guncelleSureBar(30, 30);
+  durum.kalanSure = 15;
+  guncelleSureBar(15, 15);
   durum.geriSayim = setInterval(() => {
     durum.kalanSure--;
-    guncelleSureBar(durum.kalanSure, 30);
+    guncelleSureBar(durum.kalanSure, 15);
     if (durum.kalanSure <= 0) { clearInterval(durum.geriSayim); if (!durum.cevaplandi) suresDoldu(); }
   }, 1000);
 }
@@ -1396,7 +1435,7 @@ function guncelleSureBar(kalan, toplam) {
 }
 
 function suresDoldu() {
-  durum.cevaplandi = true; durum.yanlisSayi++; durum.toplamSure += 30;
+  durum.cevaplandi = true; durum.yanlisSayi++; durum.toplamSure += 15;
   const s = durum.sorular[durum.soruIndex];
   document.querySelectorAll(".secenek").forEach((btn,idx) => { btn.disabled=true; if(idx===s.dogru) btn.classList.add("dogru"); });
   gosterSonucBalon(false, "⏰ Süre doldu! " + s.aciklama);
@@ -1413,12 +1452,12 @@ function cevapSec(secilen) {
   durum.cevaplandi = true;
   clearInterval(durum.geriSayim);
   const s = durum.sorular[durum.soruIndex];
-  const gecenSure = 30 - durum.kalanSure;
+  const gecenSure = 15 - durum.kalanSure;
   durum.toplamSure += gecenSure;
   const dogru = secilen === s.dogru;
   if (dogru) {
     const bazPuan = s.zorluk === "zor" ? 200 : s.zorluk === "orta" ? 100 : 50;
-    const hizBonus = Math.max(0, Math.round(bazPuan * 0.2 * (1 - gecenSure / 30)));
+    const hizBonus = Math.max(0, Math.round(bazPuan * 0.2 * (1 - gecenSure / 15)));
     durum.puan += bazPuan + hizBonus;
     durum.dogruSayi++;
   }
@@ -1599,6 +1638,7 @@ function kbGuncelle() {
     return;
   }
   const harf = (mevcutKullanici.displayName || mevcutKullanici.email || "?")[0].toUpperCase();
+  const emailKullanici = mevcutKullanici.providerData[0]?.providerId === "password";
   kutu.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px">
       <div class="kb-avatar">${harf}</div>
@@ -1606,6 +1646,7 @@ function kbGuncelle() {
         <div class="kb-isim">${mevcutKullanici.displayName || mevcutKullanici.email}</div>
         <div class="kb-puan" id="kb-toplam-puan">Puan yükleniyor…</div>
       </div>
+      ${emailKullanici ? `<button class="kb-cikis" onclick="sifreModalAc()">🔒 Şifre</button>` : ""}
       <button class="kb-cikis" onclick="cikisYap()">Çıkış</button>
     </div>`;
   kullaniciPuanYukle();
@@ -1625,8 +1666,24 @@ async function kullaniciPuanYukle() {
 // ─────────────────────────────────────────────────────────────
 //  AUTH MODAL
 // ─────────────────────────────────────────────────────────────
-function authModalAc()  { document.getElementById("auth-overlay").classList.add("acik"); }
+function authModalAc() {
+  document.getElementById("sekme-giris-btn").style.display = "";
+  document.getElementById("sekme-kayit-btn").style.display = "";
+  document.getElementById("sekme-sifre-btn").style.display = "none";
+  document.getElementById("auth-altyazi").style.display = "";
+  authSekme("giris", document.getElementById("sekme-giris-btn"));
+  document.getElementById("auth-overlay").classList.add("acik");
+}
 function authModalKapat(){ document.getElementById("auth-overlay").classList.remove("acik"); }
+
+function sifreModalAc() {
+  document.getElementById("sekme-giris-btn").style.display = "none";
+  document.getElementById("sekme-kayit-btn").style.display = "none";
+  document.getElementById("sekme-sifre-btn").style.display = "";
+  document.getElementById("auth-altyazi").style.display = "none";
+  authSekme("sifre", document.getElementById("sekme-sifre-btn"));
+  document.getElementById("auth-overlay").classList.add("acik");
+}
 
 document.getElementById("auth-overlay").addEventListener("click", e => {
   if (e.target === document.getElementById("auth-overlay")) authModalKapat();
@@ -1637,6 +1694,7 @@ function authSekme(tip, btn) {
   btn.classList.add("aktif");
   document.getElementById("auth-form-giris").style.display = tip === "giris" ? "flex" : "none";
   document.getElementById("auth-form-kayit").style.display = tip === "kayit" ? "flex" : "none";
+  document.getElementById("auth-form-sifre").style.display = tip === "sifre" ? "flex" : "none";
   authHataTemizle();
 }
 
@@ -1669,6 +1727,8 @@ async function kayitOl() {
   if (!ad || !email || !sifre) { authHata("Tüm alanları doldurun."); return; }
   if (sifre.length < 6)        { authHata("Şifre en az 6 karakter olmalıdır."); return; }
   try {
+    const adKontrol = await db.collection("kullanicilar").where("ad", "==", ad).get();
+    if (!adKontrol.empty) { authHata("Bu kullanıcı adı zaten alınmış. Başka bir isim deneyin."); return; }
     const kred = await auth.createUserWithEmailAndPassword(email, sifre);
     await kred.user.updateProfile({ displayName: ad });
     await db.collection("kullanicilar").doc(kred.user.uid).set({
@@ -1687,15 +1747,64 @@ async function cikisYap() {
 
 function trHata(kod) {
   const m = {
-    "auth/user-not-found":    "Bu e-posta ile kayıtlı kullanıcı bulunamadı.",
-    "auth/wrong-password":    "Şifre hatalı.",
-    "auth/email-already-in-use": "Bu e-posta zaten kullanımda.",
-    "auth/invalid-email":     "Geçersiz e-posta adresi.",
-    "auth/weak-password":     "Şifre çok zayıf.",
-    "auth/network-request-failed": "Bağlantı hatası.",
-    "auth/invalid-credential":"E-posta veya şifre hatalı.",
+    "auth/user-not-found":          "Bu e-posta ile kayıtlı kullanıcı bulunamadı.",
+    "auth/wrong-password":          "Şifre hatalı.",
+    "auth/email-already-in-use":    "Bu e-posta zaten kullanımda.",
+    "auth/invalid-email":           "Geçersiz e-posta adresi.",
+    "auth/weak-password":           "Şifre çok zayıf.",
+    "auth/network-request-failed":  "Bağlantı hatası.",
+    "auth/invalid-credential":      "E-posta veya şifre hatalı.",
+    "auth/popup-closed-by-user":    "Google girişi iptal edildi.",
+    "auth/popup-blocked":           "Açılır pencere engellendi. Tarayıcıda izin verin.",
+    "auth/cancelled-popup-request": "Giriş isteği iptal edildi.",
+    "auth/requires-recent-login":   "Güvenlik için önce çıkış yapıp tekrar giriş yapın.",
   };
   return m[kod] || "Bir hata oluştu: " + kod;
+}
+
+async function googleIleGiris() {
+  if (!auth) { authHata("Firebase yapılandırılmamış."); return; }
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    const kred     = await auth.signInWithPopup(provider);
+    const kullanici = kred.user;
+    const ref = db.collection("kullanicilar").doc(kullanici.uid);
+    const doc = await ref.get();
+    if (!doc.exists) {
+      let ad = kullanici.displayName || kullanici.email.split("@")[0];
+      const adKontrol = await db.collection("kullanicilar").where("ad", "==", ad).get();
+      if (!adKontrol.empty) ad = ad + "_" + kullanici.uid.slice(0, 4);
+      await ref.set({
+        ad, email: kullanici.email, toplamPuan: 0, oyunSayisi: 0, enIyiSkor: 0,
+        kayitTarihi: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    authModalKapat();
+  } catch(e) {
+    if (e.code !== "auth/popup-closed-by-user") authHata(trHata(e.code));
+  }
+}
+
+async function sifreDegistir() {
+  if (!auth || !mevcutKullanici) return;
+  const mevcut = document.getElementById("sifre-mevcut").value;
+  const yeni   = document.getElementById("sifre-yeni").value;
+  const yeni2  = document.getElementById("sifre-yeni2").value;
+  if (!mevcut || !yeni || !yeni2) { authHata("Tüm alanları doldurun."); return; }
+  if (yeni.length < 6)            { authHata("Yeni şifre en az 6 karakter olmalıdır."); return; }
+  if (yeni !== yeni2)             { authHata("Yeni şifreler eşleşmiyor."); return; }
+  try {
+    const credential = firebase.auth.EmailAuthProvider.credential(mevcutKullanici.email, mevcut);
+    await mevcutKullanici.reauthenticateWithCredential(credential);
+    await mevcutKullanici.updatePassword(yeni);
+    ["sifre-mevcut","sifre-yeni","sifre-yeni2"].forEach(id => document.getElementById(id).value = "");
+    const el = document.getElementById("auth-hata");
+    el.style.cssText = "display:block;background:rgba(45,122,79,0.25);border-color:#2d7a4f;color:#7efaab";
+    el.textContent = "✅ Şifreniz başarıyla güncellendi!";
+    setTimeout(() => { el.style.cssText = ""; authModalKapat(); }, 1800);
+  } catch(e) {
+    authHata(trHata(e.code));
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
