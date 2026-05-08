@@ -1401,7 +1401,7 @@ function suresDoldu() {
   document.querySelectorAll(".secenek").forEach((btn,idx) => { btn.disabled=true; if(idx===s.dogru) btn.classList.add("dogru"); });
   gosterSonucBalon(false, "⏰ Süre doldu! " + s.aciklama);
   document.getElementById("cubuk-"+durum.soruIndex).className = "ilerleme-cubuk yanlis";
-  document.getElementById("sonraki-btn").style.display = "block";
+  gosterSonrakiBtn();
   panelGuncelle();
 }
 
@@ -1431,7 +1431,7 @@ function cevapSec(secilen) {
   });
   document.getElementById("cubuk-"+durum.soruIndex).className = "ilerleme-cubuk " + (dogru ? "dogru" : "yanlis");
   gosterSonucBalon(dogru, (dogru ? "✅ Doğru! " : "❌ Yanlış. ") + s.aciklama);
-  document.getElementById("sonraki-btn").style.display = "block";
+  gosterSonrakiBtn();
   panelGuncelle();
 }
 
@@ -1439,6 +1439,14 @@ function gosterSonucBalon(dogru, metin) {
   const balon = document.getElementById("sonuc-balon");
   balon.innerHTML = metin;
   balon.className = "sonuc-balon goster " + (dogru ? "dogru-balon" : "yanlis-balon");
+}
+
+function gosterSonrakiBtn() {
+  const btn = document.getElementById("sonraki-btn");
+  const sonSoru = durum.soruIndex >= durum.sorular.length - 1;
+  btn.textContent = sonSoru ? "Ana Sayfaya Dön ⌂" : "Sonraki Soru ›";
+  btn.onclick     = sonSoru ? anaEkrana : sonrakiSoru;
+  btn.style.display = "block";
 }
 
 function sonrakiSoru() {
