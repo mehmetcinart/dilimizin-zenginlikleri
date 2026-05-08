@@ -1,0 +1,1804 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dilimizin Zenginlikleri – Edebiyat</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap');
+
+    :root {
+      --koyu: #1E1A3A;
+      --mor: #483B5A;
+      --altin: #FF5733;
+      --altin-acik: #FFD155;
+      --krem: #fdf6e3;
+      --dogru: #2d7a4f;
+      --yanlis: #8b1a1a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Lato', sans-serif;
+      background: var(--koyu);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(72,59,90,0.7) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 80%, rgba(255,87,51,0.1) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ══ HEADER ══ */
+    .site-header {
+      width: 100%;
+      text-align: center;
+      padding: 32px 16px 0;
+      position: relative;
+      z-index: 1;
+    }
+    .site-header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(22px, 5vw, 38px);
+      color: var(--altin-acik);
+      letter-spacing: 1px;
+    }
+    .site-header p {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      color: rgba(255,209,85,0.7);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    /* ══ SEKME NAVİGASYON ══ */
+    .sekme-nav {
+      display: flex;
+      gap: 6px;
+      margin: 28px auto 0;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,87,51,0.25);
+      border-radius: 50px;
+      padding: 5px;
+      position: relative;
+      z-index: 1;
+      width: fit-content;
+    }
+    .sekme-btn {
+      padding: 11px 32px;
+      border-radius: 40px;
+      border: none;
+      background: transparent;
+      color: rgba(255,255,255,0.55);
+      font-family: 'Lato', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.28s;
+      letter-spacing: 0.3px;
+    }
+    .sekme-btn:hover { color: var(--altin-acik); }
+    .sekme-btn.aktif {
+      background: linear-gradient(135deg, var(--altin), #FF7A55);
+      color: #fff;
+      box-shadow: 0 3px 16px rgba(255,87,51,0.4);
+    }
+
+    /* ══ İÇERİK ALANI ══ */
+    .sekme-icerik {
+      display: none;
+      width: min(780px, 96vw);
+      position: relative;
+      z-index: 1;
+      margin: 28px auto 48px;
+    }
+    .sekme-icerik.aktif { display: block; animation: fadeIn 0.45s ease; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ══ KART ÇERÇEVE ══ */
+    .kart {
+      background: rgba(72,59,90,0.18);
+      border: 1px solid rgba(255,87,51,0.22);
+      border-radius: 20px;
+      padding: 40px 36px;
+      backdrop-filter: blur(10px);
+    }
+    @media (max-width: 520px) { .kart { padding: 28px 18px; } }
+
+    /* ════════════════════════════════════════════════════
+       SEKME 1 – BİLGİ YARIŞMASI
+    ════════════════════════════════════════════════════ */
+    #s1-baslangic { text-align: center; }
+
+    .rozet {
+      font-size: 62px;
+      display: block;
+      margin-bottom: 14px;
+      filter: drop-shadow(0 0 18px rgba(255,209,85,0.6));
+      animation: sallan 3.5s ease-in-out infinite;
+    }
+    @keyframes sallan {
+      0%,100% { transform: rotate(-4deg) scale(1); }
+      50%      { transform: rotate(4deg) scale(1.06); }
+    }
+
+    .baslik-oyun {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(20px, 4vw, 30px);
+      color: var(--altin-acik);
+      margin-bottom: 6px;
+    }
+    .altyazi { font-family:'Playfair Display',serif; font-style:italic; color:rgba(255,209,85,0.75); font-size:14px; margin-bottom:22px; }
+    .aciklama { color:rgba(255,255,255,0.7); font-size:14px; line-height:1.85; max-width:500px; margin:0 auto 30px; }
+    .ayrac { text-align:center; color:rgba(255,87,51,0.4); font-size:18px; letter-spacing:8px; margin:18px 0; }
+
+    /* Kategoriler */
+    .kategori-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:26px; }
+    .kat-kart {
+      background: rgba(72,59,90,0.4);
+      border: 2px solid rgba(255,87,51,0.2);
+      border-radius: 14px;
+      padding: 16px 10px;
+      cursor: pointer;
+      transition: all 0.22s;
+      color: var(--krem);
+      text-align: center;
+      user-select: none;
+    }
+    .kat-kart:hover  { border-color:var(--altin); background:rgba(72,59,90,0.7); transform:translateY(-3px); }
+    .kat-kart.secili { border-color:var(--altin); background:rgba(255,87,51,0.18); box-shadow:0 0 16px rgba(255,87,51,0.3); }
+    .kat-ikon { font-size:28px; display:block; margin-bottom:7px; }
+    .kat-ad   { font-weight:700; font-size:13px; }
+    .kat-sayi { font-size:11px; opacity:0.55; margin-top:3px; }
+
+    /* Zorluk */
+    .zorluk-grup { display:flex; gap:10px; justify-content:center; margin-bottom:28px; flex-wrap:wrap; }
+    .zorluk-btn {
+      padding:9px 20px; border-radius:30px; border:2px solid rgba(255,87,51,0.3);
+      background:transparent; color:var(--krem); font-size:14px; cursor:pointer;
+      transition:all 0.2s; font-family:'Lato',sans-serif;
+    }
+    .zorluk-btn:hover { border-color:var(--altin); }
+    .zorluk-btn.aktif { background:var(--altin); color:#fff; border-color:var(--altin); font-weight:700; }
+
+    /* Genel buton */
+    .btn {
+      display:inline-block; padding:13px 38px; border-radius:40px; border:none;
+      font-family:'Lato',sans-serif; font-size:15px; font-weight:700;
+      cursor:pointer; transition:all 0.22s;
+    }
+    .btn-altin {
+      background:linear-gradient(135deg,var(--altin),#FF7A55);
+      color:#fff; box-shadow:0 4px 18px rgba(255,87,51,0.4);
+    }
+    .btn-altin:hover  { transform:translateY(-2px); box-shadow:0 7px 26px rgba(255,87,51,0.5); }
+    .btn-altin:active { transform:scale(0.97); }
+    .btn-outline {
+      background:transparent; border:2px solid rgba(255,87,51,0.4);
+      color:var(--altin-acik);
+    }
+    .btn-outline:hover { border-color:var(--altin); background:rgba(255,87,51,0.1); }
+
+    /* -- Oyun ekranı -- */
+    .ust-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:10px; }
+    .soru-sayaci { color:var(--altin-acik); font-size:13px; font-weight:700; }
+    .puan-kutu { background:rgba(255,87,51,0.15); border:1px solid rgba(255,87,51,0.3); border-radius:20px; padding:5px 16px; color:var(--altin-acik); font-weight:700; font-size:14px; }
+
+    .sure-wrapper { margin-bottom:5px; }
+    .sure-bar { width:100%; height:5px; background:rgba(255,255,255,0.09); border-radius:3px; overflow:hidden; }
+    .sure-dolgu { height:100%; border-radius:3px; background:linear-gradient(90deg,var(--altin),var(--altin-acik)); transition:width 1s linear, background 0.5s; }
+    .sure-metin { text-align:right; font-size:11px; color:rgba(255,255,255,0.45); margin-top:3px; }
+
+    .ilerleme-cubuklar { display:flex; gap:4px; margin-bottom:22px; }
+    .ilerleme-cubuk { flex:1; height:4px; border-radius:2px; background:rgba(255,255,255,0.1); transition:background 0.4s; }
+    .ilerleme-cubuk.dogru  { background:var(--dogru); }
+    .ilerleme-cubuk.yanlis { background:var(--yanlis); }
+    .ilerleme-cubuk.aktif  { background:var(--altin-acik); }
+
+    .soru-kategori { display:inline-block; background:rgba(72,59,90,0.6); border:1px solid rgba(255,87,51,0.3); border-radius:20px; padding:3px 13px; font-size:11px; color:var(--altin-acik); margin-bottom:14px; }
+    .soru-metni { font-family:'Playfair Display',serif; font-size:clamp(17px,3.2vw,23px); color:var(--krem); line-height:1.65; margin-bottom:28px; min-height:72px; }
+    .soru-metni blockquote { border-left:3px solid var(--altin-acik); padding-left:16px; font-style:italic; opacity:0.88; margin:10px 0; font-size:0.9em; }
+
+    .secenekler { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    @media (max-width:500px) { .secenekler { grid-template-columns:1fr; } }
+
+    .secenek {
+      background:rgba(255,255,255,0.035); border:2px solid rgba(255,255,255,0.1); border-radius:13px;
+      padding:14px 18px; color:rgba(255,255,255,0.82); cursor:pointer; transition:all 0.2s;
+      display:flex; align-items:center; gap:12px; font-size:14px; text-align:left;
+    }
+    .secenek:hover:not(:disabled) { border-color:var(--altin-acik); background:rgba(255,209,85,0.08); transform:translateY(-2px); }
+    .secenek:disabled { cursor:default; }
+    .secenek.dogru  { border-color:var(--dogru); background:rgba(45,122,79,0.18); color:#7efaab; }
+    .secenek.yanlis { border-color:var(--yanlis); background:rgba(139,26,26,0.18); color:#f08080; }
+    .secenek-harf { width:30px; height:30px; border-radius:50%; border:2px solid currentColor; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; flex-shrink:0; opacity:0.68; }
+
+    .sonuc-balon { margin-top:18px; padding:13px 18px; border-radius:12px; font-size:13px; line-height:1.65; display:none; }
+    .sonuc-balon.goster { display:block; animation:fadeIn 0.3s; }
+    .sonuc-balon.dogru-balon  { background:rgba(45,122,79,0.18); border:1px solid #2d7a4f; color:#7efaab; }
+    .sonuc-balon.yanlis-balon { background:rgba(139,26,26,0.18); border:1px solid #8b1a1a; color:#f08080; }
+    .sonraki-btn { margin-top:22px; width:100%; }
+
+    /* -- Sonuç ekranı -- */
+    #s1-sonuc { text-align:center; }
+    .sonuc-rozet { font-size:76px; display:block; margin-bottom:10px; filter:drop-shadow(0 0 18px rgba(255,209,85,0.55)); }
+    .sonuc-puan-kart {
+      background:linear-gradient(135deg,rgba(72,59,90,0.6),rgba(30,26,58,0.8));
+      border:2px solid var(--altin); border-radius:20px; padding:28px 20px; margin:20px 0;
+    }
+    .buyuk-puan { font-family:'Playfair Display',serif; font-size:60px; color:var(--altin-acik); font-weight:700; line-height:1; }
+    .puan-alt { color:rgba(255,255,255,0.45); font-size:13px; margin-top:5px; }
+    .istatistik-satir { display:flex; justify-content:center; gap:28px; margin:18px 0; flex-wrap:wrap; }
+    .istat-kutu { text-align:center; }
+    .istat-sayi { font-size:26px; font-weight:700; }
+    .istat-label { font-size:11px; color:rgba(255,255,255,0.45); margin-top:3px; }
+    .istat-dogru  .istat-sayi { color:#7efaab; }
+    .istat-yanlis .istat-sayi { color:#f08080; }
+    .istat-sure   .istat-sayi { color:var(--altin-acik); }
+    .unvan { font-family:'Playfair Display',serif; font-style:italic; font-size:18px; color:var(--altin-acik); margin:10px 0 4px; }
+    .yorum-metin { color:rgba(255,255,255,0.6); font-size:14px; line-height:1.75; max-width:460px; margin:0 auto 26px; }
+    .btn-grup { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+
+    /* Aynı kart içindeki birden fazla ekran */
+    .oyun-ekrani { display:none; }
+    .oyun-ekrani.aktif { display:block; animation:fadeIn 0.4s; }
+
+    /* ════════════════════════════════════════════════════
+       SEKME 2 – ŞİİR KÖŞESİ
+    ════════════════════════════════════════════════════ */
+    .siir-baslik {
+      font-family:'Playfair Display',serif;
+      font-size:clamp(20px,4vw,30px);
+      color:var(--altin-acik);
+      text-align:center;
+      margin-bottom:6px;
+    }
+    .siir-aciklama {
+      text-align:center;
+      color:rgba(255,255,255,0.6);
+      font-size:13px;
+      margin-bottom:24px;
+    }
+
+    /* Filtre butonları */
+    .siir-filtre-grup { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+    .siir-filtre-btn {
+      padding:7px 16px; border-radius:24px; border:1px solid rgba(255,87,51,0.3);
+      background:transparent; color:rgba(255,255,255,0.6); font-size:12px;
+      cursor:pointer; transition:all 0.2s; font-family:'Lato',sans-serif;
+    }
+    .siir-filtre-btn:hover { border-color:var(--altin); color:var(--altin-acik); }
+    .siir-filtre-btn.aktif { background:rgba(255,87,51,0.2); border-color:var(--altin); color:var(--altin-acik); font-weight:700; }
+
+    /* Şiir kartları */
+    .siir-liste { display:flex; flex-direction:column; gap:16px; }
+
+    .siir-kart {
+      background:rgba(72,59,90,0.2);
+      border:1px solid rgba(255,87,51,0.18);
+      border-radius:16px;
+      overflow:hidden;
+      transition:border-color 0.22s;
+    }
+    .siir-kart:hover { border-color:rgba(255,87,51,0.5); }
+
+    .siir-kart-header {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:18px 22px;
+      cursor:pointer;
+      gap:16px;
+    }
+    .siir-kart-sol { flex:1; min-width:0; }
+    .siir-kart-ad {
+      font-family:'Playfair Display',serif;
+      font-size:17px;
+      color:var(--altin-acik);
+      margin-bottom:4px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .siir-kart-yazar { font-size:12px; color:rgba(255,255,255,0.5); }
+    .siir-kart-etiket {
+      display:inline-block; background:rgba(255,87,51,0.2);
+      border:1px solid rgba(255,87,51,0.3); border-radius:12px;
+      padding:3px 10px; font-size:11px; color:var(--altin-acik);
+      white-space:nowrap; flex-shrink:0;
+    }
+    .siir-kart-ok {
+      font-size:18px; color:rgba(255,87,51,0.6);
+      transition:transform 0.28s; flex-shrink:0;
+    }
+    .siir-kart.acik .siir-kart-ok { transform:rotate(180deg); }
+
+    .siir-kart-govde {
+      display:none;
+      border-top:1px solid rgba(255,87,51,0.15);
+      padding:22px 22px 26px;
+      animation:fadeIn 0.3s;
+    }
+    .siir-kart.acik .siir-kart-govde { display:block; }
+
+    .siir-metin {
+      font-family:'Playfair Display',serif;
+      font-size:15px;
+      line-height:2;
+      color:rgba(253,246,227,0.88);
+      white-space:pre-wrap;
+      margin-bottom:18px;
+    }
+    .siir-bant {
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .siir-info-chip {
+      display:inline-flex; align-items:center; gap:6px;
+      background:rgba(72,59,90,0.5);
+      border:1px solid rgba(255,87,51,0.25);
+      border-radius:20px; padding:5px 13px;
+      font-size:12px; color:rgba(255,255,255,0.65);
+    }
+    .siir-info-chip span { color:var(--altin-acik); }
+
+    .siir-analiz-baslik {
+      font-size:12px; font-weight:700; color:rgba(255,209,85,0.75);
+      letter-spacing:0.5px; text-transform:uppercase; margin:18px 0 8px;
+    }
+    .siir-analiz {
+      font-size:13px; color:rgba(255,255,255,0.6); line-height:1.75;
+      background:rgba(72,59,90,0.3);
+      border-left:3px solid rgba(255,87,51,0.5);
+      padding:12px 16px; border-radius:0 10px 10px 0;
+    }
+
+    /* ════════════════════════════════════════════════════
+       SKOR PANELİ (sağ üst – fixed)
+    ════════════════════════════════════════════════════ */
+    #skor-panel {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 100;
+      width: 188px;
+      background: rgba(30,26,58,0.88);
+      border: 1px solid rgba(255,87,51,0.3);
+      border-radius: 18px;
+      padding: 18px 16px 14px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,87,51,0.08);
+      display: none;
+      animation: fadeIn 0.4s ease;
+    }
+    #skor-panel.gorunsun { display: block; }
+
+    .sp-baslik {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: rgba(255,87,51,0.7);
+      margin-bottom: 14px;
+      text-align: center;
+    }
+
+    .sp-satir {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .sp-satir:last-child { border-bottom: none; padding-bottom: 0; }
+
+    .sp-etiket {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.55);
+    }
+    .sp-etiket-ikon { font-size: 15px; line-height: 1; }
+
+    .sp-deger {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      min-width: 36px;
+      text-align: right;
+    }
+    .sp-deger.vurgu      { color: var(--altin-acik); font-size: 17px; }
+    .sp-deger.yesil      { color: #7efaab; }
+    .sp-deger.kirmizi    { color: #f08080; }
+    .sp-deger.turuncu    { color: var(--altin); }
+
+    /* En yüksek puan bölümü */
+    .sp-rekor {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,87,51,0.2);
+      text-align: center;
+    }
+    .sp-rekor-label { font-size: 10px; color: rgba(255,209,85,0.55); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }
+    .sp-rekor-deger { font-size: 20px; font-weight: 700; color: var(--altin-acik); font-family: 'Playfair Display', serif; }
+
+    /* Isı göstergesi (doğruluk yüzdesi) */
+    .sp-isi-bar {
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.1);
+      margin-top: 10px;
+      overflow: hidden;
+    }
+    .sp-isi-dolgu {
+      height: 100%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--altin), var(--altin-acik));
+      transition: width 0.5s ease;
+    }
+    .sp-isi-metin { font-size: 10px; color: rgba(255,255,255,0.35); text-align: right; margin-top: 3px; }
+
+    @media (max-width: 900px) {
+      #skor-panel { display: none !important; }
+    }
+
+    /* ════════════════════════════════════════════════════
+       KULLANICI BAR (header altı)
+    ════════════════════════════════════════════════════ */
+    #kullanici-bar {
+      width: min(780px, 96vw);
+      margin: 14px auto 0;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      position: relative;
+      z-index: 2;
+    }
+    .kb-avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--altin), var(--altin-acik));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px; color: var(--koyu);
+      flex-shrink: 0;
+    }
+    .kb-isim  { font-size: 13px; color: rgba(255,255,255,0.8); font-weight: 700; }
+    .kb-puan  { font-size: 12px; color: var(--altin-acik); }
+    .kb-cikis {
+      padding: 5px 14px; border-radius: 20px;
+      border: 1px solid rgba(255,87,51,0.35); background: transparent;
+      color: rgba(255,255,255,0.5); font-size: 12px; cursor: pointer;
+      transition: all 0.2s; font-family: 'Lato', sans-serif;
+    }
+    .kb-cikis:hover { border-color: var(--altin); color: var(--altin-acik); }
+    .kb-giris {
+      padding: 7px 20px; border-radius: 20px;
+      background: linear-gradient(135deg, var(--altin), #FF7A55);
+      border: none; color: #fff; font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; font-family: 'Lato', sans-serif;
+    }
+    .kb-giris:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(255,87,51,0.4); }
+
+    /* ════════════════════════════════════════════════════
+       AUTH MODAL
+    ════════════════════════════════════════════════════ */
+    #auth-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(10,8,25,0.75);
+      z-index: 200;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(6px);
+      animation: fadeIn 0.3s;
+    }
+    #auth-overlay.acik { display: flex; }
+
+    #auth-modal {
+      background: linear-gradient(145deg, #2a2050, #1E1A3A);
+      border: 1px solid rgba(255,87,51,0.3);
+      border-radius: 22px;
+      padding: 40px 36px;
+      width: min(420px, 92vw);
+      position: relative;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+      animation: fadeIn 0.35s ease;
+    }
+    .auth-kapat {
+      position: absolute; top: 16px; right: 18px;
+      background: none; border: none; color: rgba(255,255,255,0.4);
+      font-size: 22px; cursor: pointer; line-height: 1;
+      transition: color 0.2s;
+    }
+    .auth-kapat:hover { color: var(--altin); }
+    .auth-logo { text-align: center; font-size: 48px; margin-bottom: 6px; }
+    .auth-baslik {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px; color: var(--altin-acik);
+      text-align: center; margin-bottom: 4px;
+    }
+    .auth-altyazi { text-align: center; font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 28px; }
+
+    .auth-sekme-bar {
+      display: flex; gap: 0; margin-bottom: 24px;
+      background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden;
+    }
+    .auth-sekme {
+      flex: 1; padding: 9px 0; text-align: center;
+      border: none; background: transparent;
+      color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all 0.22s; font-family: 'Lato', sans-serif;
+    }
+    .auth-sekme.aktif { background: var(--altin); color: #fff; border-radius: 8px; }
+
+    .auth-form { display: flex; flex-direction: column; gap: 12px; }
+    .auth-input {
+      padding: 12px 16px; border-radius: 12px;
+      border: 1px solid rgba(255,87,51,0.25);
+      background: rgba(255,255,255,0.04);
+      color: #fff; font-size: 14px; font-family: 'Lato', sans-serif;
+      transition: border-color 0.2s; outline: none;
+    }
+    .auth-input:focus { border-color: var(--altin); }
+    .auth-input::placeholder { color: rgba(255,255,255,0.3); }
+    .auth-submit {
+      padding: 13px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, var(--altin), #FF7A55);
+      color: #fff; font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: all 0.22s; font-family: 'Lato', sans-serif;
+      margin-top: 4px;
+    }
+    .auth-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,87,51,0.4); }
+    .auth-hata {
+      background: rgba(139,26,26,0.25); border: 1px solid #8b1a1a;
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 13px; color: #f08080; display: none;
+    }
+    .auth-hata.goster { display: block; }
+
+    /* ════════════════════════════════════════════════════
+       PUAN TABLOSU SEKMESİ
+    ════════════════════════════════════════════════════ */
+    .lb-baslik {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(20px,4vw,28px);
+      color: var(--altin-acik); text-align: center; margin-bottom: 4px;
+    }
+    .lb-aciklama { text-align: center; color: rgba(255,255,255,0.55); font-size: 13px; margin-bottom: 22px; }
+
+    .lb-ust {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+    }
+    .lb-yenile {
+      padding: 7px 18px; border-radius: 20px;
+      border: 1px solid rgba(255,87,51,0.35); background: transparent;
+      color: var(--altin-acik); font-size: 13px; cursor: pointer;
+      transition: all 0.2s; font-family: 'Lato', sans-serif;
+    }
+    .lb-yenile:hover { background: rgba(255,87,51,0.1); border-color: var(--altin); }
+
+    .lb-tablo-wrap { overflow-x: auto; }
+    .lb-tablo {
+      width: 100%; border-collapse: collapse; font-size: 14px;
+    }
+    .lb-tablo th {
+      padding: 10px 14px; text-align: left;
+      font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase;
+      color: rgba(255,87,51,0.7); border-bottom: 1px solid rgba(255,87,51,0.2);
+      white-space: nowrap;
+    }
+    .lb-tablo td {
+      padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.8); vertical-align: middle;
+    }
+    .lb-tablo tr:last-child td { border-bottom: none; }
+    .lb-tablo tr:hover td { background: rgba(255,87,51,0.05); }
+    .lb-tablo tr.benim td { background: rgba(255,87,51,0.1); }
+    .lb-tablo tr.benim td:first-child { color: var(--altin); font-weight: 700; }
+
+    .lb-sira {
+      font-weight: 700; font-size: 16px;
+      width: 36px; text-align: center;
+    }
+    .lb-sira-1 { color: #FFD700; }
+    .lb-sira-2 { color: #C0C0C0; }
+    .lb-sira-3 { color: #CD7F32; }
+
+    .lb-isim { font-weight: 700; }
+    .lb-isim-avatar {
+      display: inline-flex; align-items: center; gap: 10px;
+    }
+    .lb-avatar-kucuk {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--altin), var(--altin-acik));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 11px; color: var(--koyu); flex-shrink: 0;
+    }
+    .lb-puan-deger { font-weight: 700; color: var(--altin-acik); font-size: 15px; }
+    .lb-rozet { font-size: 18px; }
+
+    .lb-bos {
+      text-align: center; padding: 40px 20px;
+      color: rgba(255,255,255,0.4); font-size: 14px; line-height: 1.8;
+    }
+    .lb-yukleniyor {
+      text-align: center; padding: 30px;
+      color: rgba(255,255,255,0.4); font-size: 14px;
+    }
+    .lb-giris-uyari {
+      text-align: center; padding: 32px 20px;
+      background: rgba(72,59,90,0.25);
+      border: 1px dashed rgba(255,87,51,0.3);
+      border-radius: 14px; color: rgba(255,255,255,0.55); font-size: 14px;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+
+<!-- SKOR PANELİ -->
+<div id="skor-panel">
+  <div class="sp-baslik">📊 Son Oyun</div>
+
+  <div class="sp-satir">
+    <div class="sp-etiket"><span class="sp-etiket-ikon">⭐</span>Anlık Puan</div>
+    <div class="sp-deger vurgu" id="sp-puan">0</div>
+  </div>
+
+  <div class="sp-satir">
+    <div class="sp-etiket"><span class="sp-etiket-ikon">📋</span>Soru</div>
+    <div class="sp-deger turuncu" id="sp-soru">1 / 10</div>
+  </div>
+
+  <div class="sp-satir">
+    <div class="sp-etiket"><span class="sp-etiket-ikon">✅</span>Doğru</div>
+    <div class="sp-deger yesil" id="sp-dogru">0</div>
+  </div>
+
+  <div class="sp-satir">
+    <div class="sp-etiket"><span class="sp-etiket-ikon">❌</span>Yanlış</div>
+    <div class="sp-deger kirmizi" id="sp-yanlis">0</div>
+  </div>
+
+  <div class="sp-satir">
+    <div class="sp-etiket"><span class="sp-etiket-ikon">⚡</span>Ort. Süre</div>
+    <div class="sp-deger" id="sp-sure">–</div>
+  </div>
+
+  <div class="sp-isi-bar"><div class="sp-isi-dolgu" id="sp-isi" style="width:0%"></div></div>
+  <div class="sp-isi-metin" id="sp-isi-metin">Doğruluk: –</div>
+
+  <div class="sp-rekor">
+    <div class="sp-rekor-label">🏆 En Yüksek Puan</div>
+    <div class="sp-rekor-deger" id="sp-rekor">0</div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="site-header">
+  <h1>📜 Dilimizin Zenginlikleri</h1>
+  <p>Türk Edebiyatı – Bilgi &amp; Şiir</p>
+</header>
+
+<!-- KULLANICI BAR -->
+<div id="kullanici-bar">
+  <div id="kb-giris-durumu"></div>
+</div>
+
+<!-- AUTH MODAL -->
+<div id="auth-overlay">
+  <div id="auth-modal">
+    <button class="auth-kapat" onclick="authModalKapat()">✕</button>
+    <div class="auth-logo">📜</div>
+    <h2 class="auth-baslik">Dilimizin Zenginlikleri</h2>
+    <p class="auth-altyazi">Giriş yap, puan kazan, sıralamada yüksel!</p>
+    <div class="auth-sekme-bar">
+      <button class="auth-sekme aktif" onclick="authSekme('giris',this)">Giriş Yap</button>
+      <button class="auth-sekme"       onclick="authSekme('kayit',this)">Kayıt Ol</button>
+    </div>
+    <div class="auth-hata" id="auth-hata"></div>
+    <div class="auth-form" id="auth-form-giris">
+      <input class="auth-input" id="giris-email"    type="email"    placeholder="E-posta adresi" />
+      <input class="auth-input" id="giris-sifre"    type="password" placeholder="Şifre" />
+      <button class="auth-submit" onclick="girisYap()">Giriş Yap</button>
+    </div>
+    <div class="auth-form" id="auth-form-kayit" style="display:none">
+      <input class="auth-input" id="kayit-ad"    type="text"     placeholder="Görünen adınız" />
+      <input class="auth-input" id="kayit-email" type="email"    placeholder="E-posta adresi" />
+      <input class="auth-input" id="kayit-sifre" type="password" placeholder="Şifre (min. 6 karakter)" />
+      <button class="auth-submit" onclick="kayitOl()">Kayıt Ol</button>
+    </div>
+  </div>
+</div>
+
+<!-- SEKME NAVİGASYON -->
+<nav class="sekme-nav">
+  <button class="sekme-btn aktif" onclick="sekmeGec('oyun',this)">🎮 Bilgi Yarışması</button>
+  <button class="sekme-btn"       onclick="sekmeGec('siir',this)">📖 Şiir Köşesi</button>
+  <button class="sekme-btn"       onclick="sekmeGec('lb',this)">🏆 Puan Tablosu</button>
+</nav>
+
+<!-- ════════════════════════════════════════════
+     SEKME 1 – BİLGİ YARIŞMASI
+════════════════════════════════════════════ -->
+<div id="sekme-oyun" class="sekme-icerik aktif">
+
+  <!-- Başlangıç -->
+  <div id="s1-baslangic" class="kart oyun-ekrani aktif">
+    <span class="rozet">🏆</span>
+    <h2 class="baslik-oyun">Bilgi Yarışması</h2>
+    <p class="altyazi">Türk edebiyatını ne kadar tanıyorsun?</p>
+    <div class="ayrac">✦ ✦ ✦</div>
+    <p class="aciklama">
+      Divan şiirinden Cumhuriyet edebiyatına, halk ozanlarından çağdaş yazarlara
+      kadar 30 soruluk havuzdan 10 soru sana gelecek. Her doğru cevap + hız bonusu!
+    </p>
+    <p style="color:var(--altin-acik);font-size:12px;margin-bottom:12px;font-weight:700;letter-spacing:.5px;">KATEGORİ SEÇ</p>
+    <div class="kategori-grid" id="kategori-grid"></div>
+    <p style="color:var(--altin-acik);font-size:12px;margin-bottom:11px;font-weight:700;letter-spacing:.5px;">ZORLUK SEVİYESİ</p>
+    <div class="zorluk-grup">
+      <button class="zorluk-btn aktif" data-zorluk="tumu">🎲 Karışık</button>
+      <button class="zorluk-btn" data-zorluk="kolay">🌱 Kolay</button>
+      <button class="zorluk-btn" data-zorluk="orta">🔥 Orta</button>
+      <button class="zorluk-btn" data-zorluk="zor">⚡ Zor</button>
+    </div>
+    <button class="btn btn-altin" onclick="oyunuBaslat()">Oyunu Başlat ›</button>
+  </div>
+
+  <!-- Oyun -->
+  <div id="s1-oyun" class="kart oyun-ekrani">
+    <div class="ust-bar">
+      <span class="soru-sayaci" id="soru-sayaci">Soru 1 / 10</span>
+      <div class="puan-kutu">⭐ <span id="anlık-puan">0</span></div>
+    </div>
+    <div class="sure-wrapper">
+      <div class="sure-bar"><div class="sure-dolgu" id="sure-dolgu"></div></div>
+      <div class="sure-metin"><span id="sure-sayi">30</span> saniye</div>
+    </div>
+    <div class="ilerleme-cubuklar" id="ilerleme-cubuklar"></div>
+    <div class="soru-kategori" id="soru-kategori">Edebiyat</div>
+    <div class="soru-metni"   id="soru-metni"></div>
+    <div class="secenekler"   id="secenekler-kutu"></div>
+    <div class="sonuc-balon"  id="sonuc-balon"></div>
+    <button class="btn btn-altin sonraki-btn" id="sonraki-btn" onclick="sonrakiSoru()" style="display:none;">Sonraki Soru ›</button>
+  </div>
+
+  <!-- Sonuç -->
+  <div id="s1-sonuc" class="kart oyun-ekrani">
+    <span class="sonuc-rozet" id="sonuc-rozet">🏆</span>
+    <h2 class="baslik-oyun" id="sonuc-baslik">Tebrikler!</h2>
+    <p class="unvan" id="sonuc-unvan"></p>
+    <div class="sonuc-puan-kart">
+      <div class="buyuk-puan" id="toplam-puan">0</div>
+      <div class="puan-alt">toplam puan</div>
+    </div>
+    <div class="istatistik-satir">
+      <div class="istat-kutu istat-dogru"><div class="istat-sayi" id="dogru-sayi">0</div><div class="istat-label">Doğru</div></div>
+      <div class="istat-kutu istat-yanlis"><div class="istat-sayi" id="yanlis-sayi">0</div><div class="istat-label">Yanlış</div></div>
+      <div class="istat-kutu istat-sure"><div class="istat-sayi" id="ort-sure">-</div><div class="istat-label">Ort. Süre</div></div>
+    </div>
+    <p class="yorum-metin" id="sonuc-yorum"></p>
+    <div class="btn-grup">
+      <button class="btn btn-altin" onclick="yenidenOyna()">Tekrar Oyna</button>
+      <button class="btn btn-outline" onclick="anaEkrana()">Ana Menü</button>
+    </div>
+  </div>
+
+</div><!-- /sekme-oyun -->
+
+
+<!-- ════════════════════════════════════════════
+     SEKME 2 – ŞİİR KÖŞESİ
+════════════════════════════════════════════ -->
+<div id="sekme-siir" class="sekme-icerik">
+  <div class="kart">
+    <h2 class="siir-baslik">📖 Şiir Köşesi</h2>
+    <p class="siir-aciklama">Türk edebiyatının seçkin şiirlerini keşfet, inceleme notlarıyla derinleş.</p>
+
+    <div class="siir-filtre-grup" id="siir-filtre-grup">
+      <button class="siir-filtre-btn aktif" data-donem="tumu" onclick="siirFiltrele('tumu',this)">Tümü</button>
+      <button class="siir-filtre-btn" data-donem="Divan" onclick="siirFiltrele('Divan',this)">Divan</button>
+      <button class="siir-filtre-btn" data-donem="Halk" onclick="siirFiltrele('Halk',this)">Halk</button>
+      <button class="siir-filtre-btn" data-donem="Tanzimat" onclick="siirFiltrele('Tanzimat',this)">Tanzimat</button>
+      <button class="siir-filtre-btn" data-donem="Cumhuriyet" onclick="siirFiltrele('Cumhuriyet',this)">Cumhuriyet</button>
+    </div>
+
+    <div class="siir-liste" id="siir-liste"></div>
+  </div>
+</div><!-- /sekme-siir -->
+
+<!-- ════════════════════════════════════════════
+     SEKME 3 – PUAN TABLOSU
+════════════════════════════════════════════ -->
+<div id="sekme-lb" class="sekme-icerik">
+  <div class="kart">
+    <h2 class="lb-baslik">🏆 Puan Tablosu</h2>
+    <p class="lb-aciklama">Tüm oyuncular arasındaki sıralamanı gör.</p>
+    <div class="lb-ust">
+      <div id="lb-kullanici-bilgi" style="font-size:13px;color:rgba(255,255,255,0.55)"></div>
+      <button class="lb-yenile" onclick="lbYukle()">↻ Yenile</button>
+    </div>
+    <div id="lb-icerik">
+      <div class="lb-yukleniyor">Yükleniyor…</div>
+    </div>
+  </div>
+</div><!-- /sekme-lb -->
+
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  ŞİİRLER VERİTABANI
+// ══════════════════════════════════════════════════════════════
+const SIIRLER = [
+  {
+    ad: "Su Kasidesi (Dörtlük)",
+    yazar: "Fuzuli (1483?–1556)",
+    donem: "Divan",
+    bicim: "Kaside / Na't",
+    olcu: "Aruz ölçüsü",
+    metin:
+`Saçma ey göz eşkden gönlümdeki odlare su,
+Kim bu denli tutuşan odlare kılmaz çare su.
+
+Suya virsün bağban gülzarı zahmet çekmesün,
+Bir gül açılmaz yüzün tek virse min gülzare su.`,
+    analiz: "Fuzuli'nin Hz. Muhammed için yazdığı bu na't kasidesi, \"su\" redifiyle kurulmuştur. Şair, gözünden akan gözyaşlarını \"su\" ile ilişkilendirerek hem sevginin hem de imanın derinliğini dile getirir. Kasideyi boydan boya \"su\" imgesi örer; her beyitte su farklı bir anlam katmanıyla yeniden doğar."
+  },
+  {
+    ad: "Rindlerin Ölümü",
+    yazar: "Yahya Kemal Beyatlı (1884–1958)",
+    donem: "Cumhuriyet",
+    bicim: "Sone (divan etkili)",
+    olcu: "Hece",
+    metin:
+`Hicran gecesinde öyle bir ân oldu ki, âh!
+Mehtap sönerken gördü gözüm bir sedef gözlük;
+Renk renk hayâller geçti ve gitti bugünkü mah,
+Bıraktı yerinde sararan, ufalan bir yüz.`,
+    analiz: "Yahya Kemal, divan şiiri geleneğiyle Fransız sembolizmi arasında köprü kuran en önemli Türk şairlerinden biridir. Bu şiirde ölüm, keder ve geçicilik temaları \"rind\" geleneğinin kaygısız-derin duruşuyla ele alınır. Musikiye yakın dizeler ve ses tekrarları Yahya Kemal'in belirgin özelliğidir."
+  },
+  {
+    ad: "Ağlarım Ağlatma (Kıta)",
+    yazar: "Yunus Emre (1238?–1320?)",
+    donem: "Halk",
+    bicim: "İlahi",
+    olcu: "7'li hece",
+    metin:
+`Dertliyim dermanımı
+Bir bilir isen söyle,
+Ben yitirdim imânımı
+Bir bulur isen söyle.
+
+Yunus'un sözü doğru,
+Eri sever hak doğru,
+Benim gönlüm bir bağru,
+Bir deşer isen söyle.`,
+    analiz: "Yunus Emre'nin ilahileri, tasavvuf düşüncesini halk diline taşımasıyla eşsizdir. Bu ilahide \"dert\" ve \"derman\" zıtlığı, sufizmin \"yoklukta bulma\" paradoksunu yansıtır. 7'li hece ölçüsü ve yinelenen \"söyle\" seslenmesi, ezberlenip söylenmeye uygun bir ritim yaratır."
+  },
+  {
+    ad: "Makber'den (Bölüm)",
+    yazar: "Abdülhak Hamit Tarhan (1852–1937)",
+    donem: "Tanzimat",
+    bicim: "Uzun şiir / Mersiye",
+    olcu: "Aruz",
+    metin:
+`Sen gittin; ah, sen gittin; artık gelmeyeceksin!
+Her yer sana kalmıştır; sana her şey gülmeyecek.
+Bu gülünç dünyaya ben de gülmeyeceğim,
+Senin ardından o güller de açılmayacak.`,
+    analiz: "Abdülhak Hamit, ilk eşi Fatma Hanım'ın ölümünden sonra 1885'te Makber'i yazmıştır. Türk edebiyatında bireysel acının bu denli yoğun işlenmesi bir ilkti. Batı romantizmini divan geleneğiyle harmanlayan şiir, büyük bir yenilik sayılır ve \"Şair-i Azam\" unvanının verilmesine zemin hazırlar."
+  },
+  {
+    ad: "Kaldırımlar",
+    yazar: "Necip Fazıl Kısakürek (1904–1983)",
+    donem: "Cumhuriyet",
+    bicim: "Şiir",
+    olcu: "Hece",
+    metin:
+`Kaldırımlar, ıslak kaldırımlar, uzar gider;
+Altımda çamur, üstümde karanlık geceler.
+Geceler ki, neye benzer bilmem, anlatamam;
+Kaldırımlar, ıslak kaldırımlar, uzar gider.`,
+    analiz: "\"Kaldırımlar\", Necip Fazıl'ın modernist kaygılarını en yalın biçimde aktardığı şiirlerin başında gelir. Yağmurlu gece manzarası, varoluşsal bunalımın metaforu olarak işler. Tekrar eden dizeler hem musiki hem anlam katmanı oluşturur; modern insanın kentsel yalnızlığı naif bir dille aktarılır."
+  },
+  {
+    ad: "Ben Sana Mecburum",
+    yazar: "Attila İlhan (1925–2005)",
+    donem: "Cumhuriyet",
+    bicim: "Serbest Şiir",
+    olcu: "Serbest",
+    metin:
+`ben sana mecburum bilemezsin,
+sabahları seni düşünerek uyanmak ne güzel;
+ben sana mecburum bilemezsin,
+yanında olmak ne güzel yalnız seni dinlemek.`,
+    analiz: "Attila İlhan, toplumsal temalar kadar aşk şiiriyle de öne çıkan bir şairdir. Bu şiirde serbest vezin, konuşma diline yakın imgeler ve yinelenen \"ben sana mecburum\" bağlacı hem bir çaresizliği hem de seçilmiş bir bağlılığı anlatır. Duygu yoğunluğu sadelikle iç içe geçmiştir."
+  },
+  {
+    ad: "Koşma (Gurbet)",
+    yazar: "Karacaoğlan (16. yy.)",
+    donem: "Halk",
+    bicim: "Koşma",
+    olcu: "8'li hece",
+    metin:
+`Gurbette gönlüm almaz hiç huzur,
+Garip bülbül gibi arar bağını;
+Karacaoğlan der ki her gün ağlar,
+Bulmaz gözlerim kendi çağını.`,
+    analiz: "Karacaoğlan, halk edebiyatında aşk ve doğayı birlikte en yetkin işleyen şairdir. Bu koşmada gurbet ve özlem temaları, sade Türkçe ve doğa imgeleriyle anlatılır. \"Garip bülbül\" benzetmesi, yurt özlemini sesli ve görsel bir imgede buluşturur. Şairin mahlasını soneta benzer biçimde son kıtaya yerleştirmesi halk geleneğine özgüdür."
+  },
+  {
+    ad: "Sakarya Türküsü (Dörtlük)",
+    yazar: "Necip Fazıl Kısakürek (1904–1983)",
+    donem: "Cumhuriyet",
+    bicim: "Şiir",
+    olcu: "Hece",
+    metin:
+`Sakarya, saf çocuk, şaşkın bakışlı;
+Mavi gözlü büyük ırmaklara karışlı;
+Evvel zaman içinde, kalbur saman içinde;
+Sakarya, Sakarya, kutlu savaş içinde.`,
+    analiz: "Türk Kurtuluş Savaşı'nın ruhunu ve Anadolu'nun kaderini bir ırmak üzerinden alegorik biçimde anlatan bu şiir, Necip Fazıl'ın milli lirizme en yakın durduğu şiirlerden biridir. Tekrarlanan \"Sakarya\" seslenmesi bir türkü gibi hem sızlar hem de zafer müjdesi taşır."
+  },
+];
+
+// ══════════════════════════════════════════════════════════════
+//  SORU BANKASI
+// ══════════════════════════════════════════════════════════════
+const SORULAR = [
+
+  /* ── YANLIŞ YAZILAN KELİMELER ── */
+  { kategori:"Yanlış Yazılan Kelimeler", zorluk:"kolay",
+    soru:"Aşağıdaki bağlaçlardan hangisinin yazımı doğrudur?",
+    secenekler:["yada","ya-da","ya da","ya'da"],
+    dogru:2,
+    aciklama:"\"ya da\" bağlacı her zaman iki ayrı kelime olarak yazılır. \"Yada\" biçimi TDK'ya göre yanlıştır." },
+
+  { kategori:"Yanlış Yazılan Kelimeler", zorluk:"kolay",
+    soru:"Aşağıdaki sözcük gruplarından hangisinin yazımı doğrudur?",
+    secenekler:["herşey","hergün","her şey","herkez"],
+    dogru:2,
+    aciklama:"\"Her\" sözcüğü kendinden sonra gelen kelimeyle daima ayrı yazılır: her şey, her gün, herkes (istisna: bitişik yazılanlar ayrıca öğrenilmeli)." },
+
+  { kategori:"Yanlış Yazılan Kelimeler", zorluk:"kolay",
+    soru:"Aşağıdaki sözcüklerden hangisinin yazımı doğrudur?",
+    secenekler:["bir birine","birbi rine","bir-birine","birbirine"],
+    dogru:3,
+    aciklama:"\"Birbirine\" dönüşlülük zamiri olup bitişik yazılır. Birbirini, birbirinden gibi tüm çekimleri de bitişik yazılır." },
+
+  { kategori:"Yanlış Yazılan Kelimeler", zorluk:"orta",
+    soru:"Aşağıdaki sözcüklerden hangisinin yazımı doğrudur?",
+    secenekler:["faliyet","faaliyyet","faaliyet","fâliyet"],
+    dogru:2,
+    aciklama:"\"Faaliyet\" çift 'a' ile yazılır. Arapça 'fiil' (eylem) kökünden gelir; diğer seçenekler yanlış yazılışlardır." },
+
+  { kategori:"Yanlış Yazılan Kelimeler", zorluk:"orta",
+    soru:"\"Hâlâ\" ile \"hala\" sözcüklerinin anlam farkı nedir?",
+    secenekler:[
+      "İkisi de aynı anlama gelir, şapka zorunlu değildir",
+      "\"Hâlâ\" = henüz/hep; \"hala\" = annenin/babanın kız kardeşi",
+      "\"Hala\" = henüz; \"hâlâ\" = akraba anlamına gelir",
+      "Şapka yalnızca uzatmayı gösterir, anlam farkı yoktur"
+    ],
+    dogru:1,
+    aciklama:"Şapka (^) bu iki kelimeyi anlam bakımından ayırır: \"hâlâ\" = henüz; \"hala\" = teyze/babanın kız kardeşi." },
+
+  { kategori:"Yanlış Yazılan Kelimeler", zorluk:"orta",
+    soru:"\"de/da\" bağlacı ile \"-de/-da\" hal ekini ayırt etmek için hangi kural uygulanır?",
+    secenekler:[
+      "Bağlaç her zaman bitişik, hal eki ayrı yazılır",
+      "Cümleden çıkarılabiliyorsa ayrı (bağlaç), çıkarılamazsa bitişik (hal eki) yazılır",
+      "Fiillere bitişik, isimlere ayrı yazılır",
+      "Her zaman ayrı yazılır"
+    ],
+    dogru:1,
+    aciklama:"\"Ben de geldim\" → çıkarılabilir, bağlaç, ayrı. \"Evde oturdu\" → çıkarılamaz, hal eki, bitişik." },
+
+  { kategori:"Yanlış Yazılan Kelimeler", zorluk:"zor",
+    soru:"\"Kâr\" ile \"kar\" sözcükleri arasındaki anlam farkı nedir?",
+    secenekler:[
+      "İkisi aynı anlama gelir, şapka gereksizdir",
+      "\"Kâr\" = kazanç/fayda; \"kar\" = yağan beyaz don kristalleri",
+      "\"Kar\" = kazanç; \"kâr\" = yağan beyaz don",
+      "Şapka yalnızca resmi yazışmalarda kullanılır"
+    ],
+    dogru:1,
+    aciklama:"\"Kâr\" (Farsça) = kazanç, fayda; \"kar\" (Türkçe) = yağan beyaz buz kristalleri. Şapka anlam farkı yaratır." },
+
+  { kategori:"Yanlış Yazılan Kelimeler", zorluk:"zor",
+    soru:"Aşağıdaki cümlelerden hangisinde soru eki doğru yazılmıştır?",
+    secenekler:[
+      "Geldinmi okula?",
+      "Bu kitap güzel mi?",
+      "Sen de gelecekmisin?",
+      "Biliyormusun bunu?"
+    ],
+    dogru:1,
+    aciklama:"Soru eki \"mı/mi/mu/mü\" daima önceki sözcükten ayrı yazılır: \"güzel mi?\", \"geldin mi?\" — hiçbir zaman bitiştirilmez." },
+
+  { kategori:"Yanlış Yazılan Kelimeler", zorluk:"zor",
+    soru:"\"-de ki\" ile \"-deki\" arasındaki yazım farkı için hangi kural geçerlidir?",
+    secenekler:[
+      "Her zaman bitişik yazılır",
+      "\"De ki\" = fiil (söyle ki), ayrı; \"-deki\" = yer bildiren sıfat eki, bitişik",
+      "Her zaman ayrı yazılır",
+      "Yalnızca zaman anlamı taşıyınca ayrı yazılır"
+    ],
+    dogru:1,
+    aciklama:"\"De ki\" (söyle ki) fiildir, ayrı yazılır. \"-deki\" ise yer bildiren sıfat ekidir ve bitişik yazılır: \"masadaki kitap\"." },
+
+  /* ── YABANCI DİLLERDEN TÜRKÇEYE ── */
+  { kategori:"Yabancı Dillerden Türkçeye", zorluk:"kolay",
+    soru:"\"Kuaför\" kelimesi hangi dilden Türkçeye geçmiştir?",
+    secenekler:["İngilizce","Fransızca","Almanca","İtalyanca"],
+    dogru:1,
+    aciklama:"\"Kuaför\" Fransızca \"coiffeur\" (saç stilisti) sözcüğünden gelmektedir. Fransızcadan Türkçeye geçmiş binlerce kelimeden biridir." },
+
+  { kategori:"Yabancı Dillerden Türkçeye", zorluk:"kolay",
+    soru:"\"Kalem\" kelimesi hangi dilden Türkçeye geçmiştir?",
+    secenekler:["Farsça","Rumca","Arapça","Latince"],
+    dogru:2,
+    aciklama:"\"Kalem\" Arapça \"qalam\" sözcüğünden gelmektedir. Yazı yazmak için kullanılan ince çubuğu ifade eder." },
+
+  { kategori:"Yabancı Dillerden Türkçeye", zorluk:"kolay",
+    soru:"\"Fırtına\" kelimesi hangi dilden Türkçeye alınmıştır?",
+    secenekler:["Arapça","Farsça","Rumca (Yunanca)","İtalyanca"],
+    dogru:3,
+    aciklama:"\"Fırtına\" İtalyanca \"fortuna\" (şans, kader) sözcüğünden gelmektedir. Denizci dilinden geçmiş İtalyanca kökenli pek çok kelimemiz vardır." },
+
+  { kategori:"Yabancı Dillerden Türkçeye", zorluk:"orta",
+    soru:"\"Pencere\" kelimesi hangi dilden Türkçeye geçmiştir?",
+    secenekler:["Arapça","Fransızca","Farsça","Yunanca"],
+    dogru:2,
+    aciklama:"\"Pencere\" Farsça \"panjara\" sözcüğünden gelmektedir. Farsça, Osmanlı Türkçesini derinden etkileyen dillerden biridir." },
+
+  { kategori:"Yabancı Dillerden Türkçeye", zorluk:"orta",
+    soru:"\"Liman\" kelimesinin kökeni hangi dile dayanmaktadır?",
+    secenekler:["İtalyanca","Arapça","Rumca (Yunanca)","Farsça"],
+    dogru:2,
+    aciklama:"\"Liman\" Yunanca \"limani\" (λιμάνι) sözcüğünden gelmektedir. Kıyı ve denizcilik terimleri arasında pek çok Yunanca kökenli sözcük bulunur." },
+
+  { kategori:"Yabancı Dillerden Türkçeye", zorluk:"orta",
+    soru:"\"Şoför\" kelimesi hangi dilden Türkçeye geçmiştir?",
+    secenekler:["İngilizce","Almanca","Fransızca","İtalyanca"],
+    dogru:2,
+    aciklama:"\"Şoför\" Fransızca \"chauffeur\" (ateşçi, sonradan sürücü) sözcüğünden gelmektedir. Otomobilin icadıyla birlikte dile girmiştir." },
+
+  { kategori:"Yabancı Dillerden Türkçeye", zorluk:"orta",
+    soru:"\"Banka\" kelimesi hangi dilden Türkçeye alınmıştır?",
+    secenekler:["Fransızca","İngilizce","İtalyanca","Almanca"],
+    dogru:2,
+    aciklama:"\"Banka\" İtalyanca \"banca\" sözcüğünden gelmektedir. İtalyan tüccarların kuyumcu tezgâhlarında (banco) yürüttüğü para işlemlerinden kaynaklanır." },
+
+  { kategori:"Yabancı Dillerden Türkçeye", zorluk:"zor",
+    soru:"\"Nane\" kelimesi hangi dilden Türkçeye geçmiştir?",
+    secenekler:["Arapça","Farsça","Yunanca","Latince"],
+    dogru:1,
+    aciklama:"\"Nane\" Farsça \"nāna\" sözcüğünden gelmektedir. Farsça kökenli bitki ve baharat adları Türkçede oldukça fazladır." },
+
+  { kategori:"Yabancı Dillerden Türkçeye", zorluk:"zor",
+    soru:"\"Randevu\" kelimesi hangi dilden Türkçeye geçmiştir?",
+    secenekler:["İngilizce","İtalyanca","Fransızca","Almanca"],
+    dogru:2,
+    aciklama:"\"Randevu\" Fransızca \"rendez-vous\" (kendinizi sunun) deyiminden gelmektedir. 19. yüzyılda Fransız modası aracılığıyla Türkçeye girmiştir." },
+
+  { kategori:"Yabancı Dillerden Türkçeye", zorluk:"zor",
+    soru:"\"Mektep\" kelimesi hangi dilden Türkçeye alınmıştır?",
+    secenekler:["Farsça","Rumca","Türkçe","Arapça"],
+    dogru:3,
+    aciklama:"\"Mektep\" Arapça \"maktab\" (yazı yazılan yer) sözcüğünden gelmektedir. Eğitim alanındaki pek çok eski terimiz Arapça kökenlidir." },
+
+  /* ── EDEBİ TERİMLER ── */
+  { kategori:"Edebi Terimler", zorluk:"kolay",
+    soru:"Benzetme edatı (gibi, sanki vb.) kullanılmadan bir şeyi başka bir şeye benzeten sanat hangisidir?",
+    secenekler:["Teşbih","İstiare","Mecaz","Telmih"],
+    dogru:1,
+    aciklama:"İstiare, benzetme edatı olmaksızın dolaylı benzetme sanatıdır. Teşbih'te ise \"gibi, sanki, kadar\" gibi edatlar kullanılır." },
+
+  { kategori:"Edebi Terimler", zorluk:"kolay",
+    soru:"Cansız varlıklara veya soyut kavramlara insan özellikleri yükleme sanatına ne denir?",
+    secenekler:["Teşhis (Kişileştirme)","İstiare","Kinaye","İntak"],
+    dogru:0,
+    aciklama:"Teşhis (kişileştirme), insan dışı varlıklara insana özgü özellikler yüklemektir. İntak ise bu varlıklara konuşturma özelliği vermektir." },
+
+  { kategori:"Edebi Terimler", zorluk:"orta",
+    soru:"Geçmiş bir olaya, tarihi kişiye ya da mitolojik unsura dolaylı atıfta bulunma sanatı hangisidir?",
+    secenekler:["Tevriye","Telmih","İham","Kinaye"],
+    dogru:1,
+    aciklama:"Telmih, şiirde tarihsel olay, efsane veya ünlü kişiliklere dolaylı gönderme yapma sanatıdır." },
+
+  { kategori:"Edebi Terimler", zorluk:"orta",
+    soru:"Bir sözcüğün iki anlamından uzak olanını kastederek yakın olanı akla getirme sanatı nedir?",
+    secenekler:["İham","Tevriye","Cinas","Kinaye"],
+    dogru:1,
+    aciklama:"Tevriye'de sözcüğün iki anlamından yakın olan akla gelir; ancak uzak olan kastedilir. İham'da ise her iki anlam da kastedilir." },
+
+  { kategori:"Edebi Terimler", zorluk:"orta",
+    soru:"Aynı sesleri taşıyan fakat farklı anlama gelen sözcükleri yan yana kullanma sanatına ne denir?",
+    secenekler:["Tevriye","İham","Cinas","Leff ü neşr"],
+    dogru:2,
+    aciklama:"Cinas, sesleri aynı ya da benzer fakat anlamları farklı sözcükleri bir arada kullanma sanatıdır." },
+
+  { kategori:"Edebi Terimler", zorluk:"zor",
+    soru:"\"Hüsn-i talil\" sanatı nasıl tanımlanır?",
+    secenekler:[
+      "Bir olayın gerçek nedeni yerine daha güzel, şiirsel bir neden öne sürme",
+      "Abartılı anlatım sanatı",
+      "Söylenenin tam tersini kastetme",
+      "Parça-bütün ilişkisiyle benzetme"
+    ],
+    dogru:0,
+    aciklama:"Hüsn-i talil: bir durumun gerçek nedenini söylemek yerine daha güzel bir neden öne sürmektir. Örnek: \"Gül, sevgilinin yüzünü kıskanarak kızardı.\"" },
+
+  { kategori:"Edebi Terimler", zorluk:"zor",
+    soru:"\"Leff ü neşr\" sanatının tanımı nedir?",
+    secenekler:[
+      "Bir sözcüğü iki anlamda kullanma",
+      "Birkaç unsuru sıralayıp ardından her birine ayrı ayrı karşılık verme",
+      "Geçmişe gönderme yapma",
+      "İnsan özelliği yükleme"
+    ],
+    dogru:1,
+    aciklama:"Leff ü neşr'de önce birkaç kavram sıralanır (leff), ardından her birine sırasıyla ya da karışık sırayla karşılık verilir (neşr)." },
+
+  { kategori:"Edebi Terimler", zorluk:"zor",
+    soru:"\"Mecaz-ı mürsel\" (düz değişmece) hangi ilkeye dayanır?",
+    secenekler:[
+      "Benzerlik ilişkisi",
+      "Parça-bütün, yer-içindeki, neden-sonuç gibi yakınlık ilişkisi",
+      "Zıtlık ilişkisi",
+      "Ses benzerliği"
+    ],
+    dogru:1,
+    aciklama:"Mecaz-ı mürsel'de bir sözcük benzerlik dışı ilişkilerle (parça-bütün, yer-kişi, neden-sonuç) başka anlama gelir. Örnek: \"Ankara bu kararı açıkladı.\"" },
+];
+
+// ══════════════════════════════════════════════════════════════
+//  KATEGORİLER
+// ══════════════════════════════════════════════════════════════
+const KATEGORILER = [
+  { id:"tumu",                          ikon:"📚", ad:"Tüm Sorular" },
+  { id:"Yanlış Yazılan Kelimeler",      ikon:"✍️",  ad:"Yanlış Yazılanlar" },
+  { id:"Yabancı Dillerden Türkçeye",   ikon:"🌍", ad:"Yabancı Dilden Gelen" },
+  { id:"Edebi Terimler",               ikon:"📖", ad:"Edebi Terimler" },
+];
+
+// ══════════════════════════════════════════════════════════════
+//  DURUM
+// ══════════════════════════════════════════════════════════════
+let durum = {
+  seciliKategori: "tumu",
+  seciliZorluk: "tumu",
+  sorular: [],
+  soruIndex: 0,
+  puan: 0,
+  dogruSayi: 0,
+  yanlisSayi: 0,
+  toplamSure: 0,
+  geriSayim: null,
+  kalanSure: 30,
+  cevaplandi: false,
+};
+
+// ══════════════════════════════════════════════════════════════
+//  SKOR PANELİ
+// ══════════════════════════════════════════════════════════════
+const LS_REKOR    = "dlz_rekor";
+const LS_SON_OYUN = "dlz_son_oyun";
+
+function anaEkraniGoster() {
+  oyunEkrani("s1-baslangic");
+  anaEkranPanelGuncelle();
+  panelGoster(true);
+}
+
+function anaEkranPanelGuncelle() {
+  const rekor   = parseInt(localStorage.getItem(LS_REKOR) || "0");
+  const sonJSON = localStorage.getItem(LS_SON_OYUN);
+  const son     = sonJSON ? JSON.parse(sonJSON) : null;
+
+  document.getElementById("sp-rekor").textContent = rekor;
+
+  if (son) {
+    document.getElementById("sp-puan").textContent   = son.puan;
+    document.getElementById("sp-soru").textContent   = son.toplam + " soru";
+    document.getElementById("sp-dogru").textContent  = son.dogru;
+    document.getElementById("sp-yanlis").textContent = son.yanlis;
+    document.getElementById("sp-sure").textContent   = son.ortSure + "s";
+    const dogruluk = son.toplam > 0 ? Math.round((son.dogru / son.toplam) * 100) : 0;
+    document.getElementById("sp-isi").style.width    = dogruluk + "%";
+    document.getElementById("sp-isi-metin").textContent = "Doğruluk: " + dogruluk + "%";
+  } else {
+    document.getElementById("sp-puan").textContent   = "–";
+    document.getElementById("sp-soru").textContent   = "–";
+    document.getElementById("sp-dogru").textContent  = "–";
+    document.getElementById("sp-yanlis").textContent = "–";
+    document.getElementById("sp-sure").textContent   = "–";
+    document.getElementById("sp-isi").style.width    = "0%";
+    document.getElementById("sp-isi-metin").textContent = "Henüz oynanmadı";
+  }
+}
+
+function panelGoster(goster) {
+  document.getElementById("skor-panel").classList.toggle("gorunsun", goster);
+}
+
+function rekorKaydet(puan) {
+  const rekor = parseInt(localStorage.getItem(LS_REKOR) || "0");
+  if (puan > rekor) localStorage.setItem(LS_REKOR, puan);
+}
+
+function sonOyunuKaydet() {
+  const toplam    = durum.sorular.length;
+  const cevaplanan = durum.dogruSayi + durum.yanlisSayi;
+  localStorage.setItem(LS_SON_OYUN, JSON.stringify({
+    puan:    durum.puan,
+    dogru:   durum.dogruSayi,
+    yanlis:  durum.yanlisSayi,
+    toplam:  toplam,
+    ortSure: cevaplanan > 0 ? Math.round(durum.toplamSure / cevaplanan) : 0,
+  }));
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SEKME GEÇİŞİ
+// ══════════════════════════════════════════════════════════════
+function sekmeGec(id, btn) {
+  document.querySelectorAll(".sekme-icerik").forEach(el => el.classList.remove("aktif"));
+  document.querySelectorAll(".sekme-btn").forEach(b => b.classList.remove("aktif"));
+  document.getElementById("sekme-" + id).classList.add("aktif");
+  btn.classList.add("aktif");
+  if (id === "siir") siirListeOlustur("tumu");
+  if (id === "lb")   lbYukle();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  KATEGORİ GRID
+// ══════════════════════════════════════════════════════════════
+function kategoriGridOlustur() {
+  const grid = document.getElementById("kategori-grid");
+  grid.innerHTML = "";
+  KATEGORILER.forEach(kat => {
+    const sayi = kat.id === "tumu"
+      ? SORULAR.length
+      : SORULAR.filter(s => s.kategori === kat.id).length;
+    const div = document.createElement("div");
+    div.className = "kat-kart" + (kat.id === durum.seciliKategori ? " secili" : "");
+    div.innerHTML = `<span class="kat-ikon">${kat.ikon}</span>
+                     <div class="kat-ad">${kat.ad}</div>
+                     <div class="kat-sayi">${sayi} soru</div>`;
+    div.addEventListener("click", () => {
+      durum.seciliKategori = kat.id;
+      document.querySelectorAll(".kat-kart").forEach(k => k.classList.remove("secili"));
+      div.classList.add("secili");
+    });
+    grid.appendChild(div);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ZORLUK SEÇİCİ
+// ══════════════════════════════════════════════════════════════
+document.querySelectorAll(".zorluk-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    durum.seciliZorluk = btn.dataset.zorluk;
+    document.querySelectorAll(".zorluk-btn").forEach(b => b.classList.remove("aktif"));
+    btn.classList.add("aktif");
+  });
+});
+
+// ══════════════════════════════════════════════════════════════
+//  OYUN BAŞLAT
+// ══════════════════════════════════════════════════════════════
+function oyunuBaslat() {
+  let havuz = [...SORULAR];
+  if (durum.seciliKategori !== "tumu") havuz = havuz.filter(s => s.kategori === durum.seciliKategori);
+  if (durum.seciliZorluk   !== "tumu") havuz = havuz.filter(s => s.zorluk   === durum.seciliZorluk);
+
+  if (havuz.length === 0) {
+    alert("Bu filtreler için soru bulunamadı. Lütfen farklı bir kombinasyon seçin.");
+    return;
+  }
+  havuz = havuz.sort(() => Math.random() - 0.5).slice(0, Math.min(10, havuz.length));
+
+  durum.sorular    = havuz;
+  durum.soruIndex  = 0;
+  durum.puan       = 0;
+  durum.dogruSayi  = 0;
+  durum.yanlisSayi = 0;
+  durum.toplamSure = 0;
+
+  const cubuklar = document.getElementById("ilerleme-cubuklar");
+  cubuklar.innerHTML = havuz.map((_,i) => `<div class="ilerleme-cubuk" id="cubuk-${i}"></div>`).join("");
+
+  oyunEkrani("s1-oyun");
+  panelGoster(false);
+  soruGoster();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SORU GÖSTER
+// ══════════════════════════════════════════════════════════════
+function soruGoster() {
+  const s = durum.sorular[durum.soruIndex];
+  durum.cevaplandi = false;
+  durum.kalanSure  = 30;
+
+  document.getElementById("soru-sayaci").textContent = `Soru ${durum.soruIndex+1} / ${durum.sorular.length}`;
+  document.getElementById("anlık-puan").textContent  = durum.puan;
+  document.getElementById("sp-soru").textContent     = `${durum.soruIndex+1} / ${durum.sorular.length}`;
+  document.getElementById("soru-kategori").textContent = s.kategori;
+  document.getElementById("soru-metni").innerHTML    = s.soru;
+  document.getElementById("sonuc-balon").className   = "sonuc-balon";
+  document.getElementById("sonraki-btn").style.display = "none";
+
+  document.querySelectorAll(".ilerleme-cubuk").forEach((c,i) => {
+    c.className = "ilerleme-cubuk" + (i === durum.soruIndex ? " aktif" : "");
+  });
+
+  const kutu = document.getElementById("secenekler-kutu");
+  kutu.innerHTML = "";
+  ["A","B","C","D"].forEach((harf, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "secenek";
+    btn.innerHTML = `<span class="secenek-harf">${harf}</span>${s.secenekler[idx]}`;
+    btn.addEventListener("click", () => cevapSec(idx));
+    kutu.appendChild(btn);
+  });
+
+  geriSayimBaslat();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  GERİ SAYIM
+// ══════════════════════════════════════════════════════════════
+function geriSayimBaslat() {
+  clearInterval(durum.geriSayim);
+  durum.kalanSure = 30;
+  guncelleSureBar(30, 30);
+  durum.geriSayim = setInterval(() => {
+    durum.kalanSure--;
+    guncelleSureBar(durum.kalanSure, 30);
+    if (durum.kalanSure <= 0) { clearInterval(durum.geriSayim); if (!durum.cevaplandi) suresDoldu(); }
+  }, 1000);
+}
+
+function guncelleSureBar(kalan, toplam) {
+  const yuzde = (kalan / toplam) * 100;
+  const dolgu = document.getElementById("sure-dolgu");
+  dolgu.style.width = yuzde + "%";
+  dolgu.style.background = kalan > 15
+    ? "linear-gradient(90deg,#FF5733,#FFD155)"
+    : kalan > 8
+    ? "linear-gradient(90deg,#FF7733,#FFAA33)"
+    : "linear-gradient(90deg,#c03030,#e04040)";
+  document.getElementById("sure-sayi").textContent = kalan;
+}
+
+function suresDoldu() {
+  durum.cevaplandi = true; durum.yanlisSayi++; durum.toplamSure += 30;
+  const s = durum.sorular[durum.soruIndex];
+  document.querySelectorAll(".secenek").forEach((btn,idx) => { btn.disabled=true; if(idx===s.dogru) btn.classList.add("dogru"); });
+  gosterSonucBalon(false, "⏰ Süre doldu! " + s.aciklama);
+  document.getElementById("cubuk-"+durum.soruIndex).className = "ilerleme-cubuk yanlis";
+  document.getElementById("sonraki-btn").style.display = "block";
+  panelGuncelle();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CEVAP SEÇ
+// ══════════════════════════════════════════════════════════════
+function cevapSec(secilen) {
+  if (durum.cevaplandi) return;
+  durum.cevaplandi = true;
+  clearInterval(durum.geriSayim);
+  const s = durum.sorular[durum.soruIndex];
+  const gecenSure = 30 - durum.kalanSure;
+  durum.toplamSure += gecenSure;
+  const dogru = secilen === s.dogru;
+  if (dogru) {
+    const bazPuan = s.zorluk === "zor" ? 200 : s.zorluk === "orta" ? 100 : 50;
+    const hizBonus = Math.max(0, Math.round(bazPuan * 0.2 * (1 - gecenSure / 30)));
+    durum.puan += bazPuan + hizBonus;
+    durum.dogruSayi++;
+  }
+  else { durum.yanlisSayi++; }
+  document.getElementById("anlık-puan").textContent = durum.puan;
+  document.querySelectorAll(".secenek").forEach((btn,idx) => {
+    btn.disabled = true;
+    if (idx === s.dogru) btn.classList.add("dogru");
+    if (idx === secilen && !dogru) btn.classList.add("yanlis");
+  });
+  document.getElementById("cubuk-"+durum.soruIndex).className = "ilerleme-cubuk " + (dogru ? "dogru" : "yanlis");
+  gosterSonucBalon(dogru, (dogru ? "✅ Doğru! " : "❌ Yanlış. ") + s.aciklama);
+  document.getElementById("sonraki-btn").style.display = "block";
+  panelGuncelle();
+}
+
+function gosterSonucBalon(dogru, metin) {
+  const balon = document.getElementById("sonuc-balon");
+  balon.innerHTML = metin;
+  balon.className = "sonuc-balon goster " + (dogru ? "dogru-balon" : "yanlis-balon");
+}
+
+function sonrakiSoru() {
+  durum.soruIndex++;
+  if (durum.soruIndex >= durum.sorular.length) sonucGoster();
+  else soruGoster();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SONUÇ
+// ══════════════════════════════════════════════════════════════
+function sonucGoster() {
+  clearInterval(durum.geriSayim);
+  const toplam = durum.sorular.length;
+  const oran   = durum.dogruSayi / toplam;
+  const { rozet, baslik, unvan, yorum } = sonucMetni(oran);
+  document.getElementById("sonuc-rozet").textContent  = rozet;
+  document.getElementById("sonuc-baslik").textContent = baslik;
+  document.getElementById("sonuc-unvan").textContent  = unvan;
+  document.getElementById("toplam-puan").textContent  = durum.puan;
+  document.getElementById("dogru-sayi").textContent   = durum.dogruSayi;
+  document.getElementById("yanlis-sayi").textContent  = durum.yanlisSayi;
+  document.getElementById("ort-sure").textContent     = Math.round(durum.toplamSure/toplam) + "s";
+  document.getElementById("sonuc-yorum").textContent  = yorum;
+  rekorKaydet(durum.puan);
+  sonOyunuKaydet();
+  oyunEkrani("s1-sonuc");
+}
+
+function sonucMetni(oran) {
+  if (oran >= 0.9) return { rozet:"🏆", baslik:"Muhteşem!", unvan:"\"Edebiyat Üstadı\"",
+    yorum:"Harika! Türk edebiyatına olan hakimiyetin gerçekten takdire şayan." };
+  if (oran >= 0.7) return { rozet:"🥇", baslik:"Bravo!", unvan:"\"Edebiyat Meraklısı\"",
+    yorum:"Çok iyi bir performans. Tutkun belli; ufak tefek eksiklerin de var." };
+  if (oran >= 0.5) return { rozet:"📖", baslik:"Fena Değil!", unvan:"\"Yolun Ortasındaki Okur\"",
+    yorum:"Temel bilgilerin var; biraz daha okuyarak çok daha iyi sonuçlar alabilirsin." };
+  if (oran >= 0.3) return { rozet:"🌱", baslik:"Gelişme Var!", unvan:"\"Okuma Serüveninin Başındaki\"",
+    yorum:"Türk edebiyatı keşfedilmeyi bekleyen büyük bir hazine. Okumaya devam!" };
+  return { rozet:"📝", baslik:"Tekrar Dene!", unvan:"\"Aday Okur\"",
+    yorum:"Endişelenme! Edebiyat uzun ve keyifli bir yolculuk. Her soru seni ilerletir." };
+}
+
+function oyunEkrani(id) {
+  document.querySelectorAll(".oyun-ekrani").forEach(e => e.classList.remove("aktif"));
+  document.getElementById(id).classList.add("aktif");
+}
+function yenidenOyna() { oyunuBaslat(); }
+function anaEkrana()   { clearInterval(durum.geriSayim); anaEkraniGoster(); }
+
+// ══════════════════════════════════════════════════════════════
+//  ŞİİR LİSTESİ
+// ══════════════════════════════════════════════════════════════
+let siirFiltreCurrent = "tumu";
+
+function siirListeOlustur(donem) {
+  siirFiltreCurrent = donem;
+  const filtreli = donem === "tumu" ? SIIRLER : SIIRLER.filter(s => s.donem === donem);
+  const liste = document.getElementById("siir-liste");
+  liste.innerHTML = "";
+
+  filtreli.forEach((siir, i) => {
+    const div = document.createElement("div");
+    div.className = "siir-kart";
+    div.innerHTML = `
+      <div class="siir-kart-header" onclick="siirAcKapat(this.parentElement)">
+        <div class="siir-kart-sol">
+          <div class="siir-kart-ad">${siir.ad}</div>
+          <div class="siir-kart-yazar">${siir.yazar}</div>
+        </div>
+        <span class="siir-kart-etiket">${siir.donem}</span>
+        <span class="siir-kart-ok">▼</span>
+      </div>
+      <div class="siir-kart-govde">
+        <div class="siir-metin">${siir.metin}</div>
+        <div class="siir-bant">
+          <div class="siir-info-chip">📏 <span>${siir.bicim}</span></div>
+          <div class="siir-info-chip">🎵 <span>${siir.olcu}</span></div>
+        </div>
+        <div class="siir-analiz-baslik">İnceleme Notu</div>
+        <div class="siir-analiz">${siir.analiz}</div>
+      </div>`;
+    liste.appendChild(div);
+  });
+}
+
+function siirAcKapat(kart) {
+  kart.classList.toggle("acik");
+}
+
+function siirFiltrele(donem, btn) {
+  document.querySelectorAll(".siir-filtre-btn").forEach(b => b.classList.remove("aktif"));
+  btn.classList.add("aktif");
+  siirListeOlustur(donem);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  BAŞLAT
+// ══════════════════════════════════════════════════════════════
+kategoriGridOlustur();
+siirListeOlustur("tumu");
+anaEkranPanelGuncelle();
+panelGoster(true);
+</script>
+
+<!-- ══════════════════════════════════════════════════════════
+     FİREBASE + AUTH + LEADERBOARD
+══════════════════════════════════════════════════════════ -->
+<script>
+// ─────────────────────────────────────────────────────────────
+//  🔧 BURAYA KENDİ FİREBASE YAPILANDIRMANIZI GİRİN
+//  Firebase Console → Proje Ayarları → Uygulamanızın yapılandırması
+// ─────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey:            "BURAYA_API_KEY",
+  authDomain:        "BURAYA_AUTH_DOMAIN",
+  projectId:         "BURAYA_PROJECT_ID",
+  storageBucket:     "BURAYA_STORAGE_BUCKET",
+  messagingSenderId: "BURAYA_MESSAGING_SENDER_ID",
+  appId:             "BURAYA_APP_ID"
+};
+
+// ─────────────────────────────────────────────────────────────
+//  Firebase başlat
+// ─────────────────────────────────────────────────────────────
+let db, auth, mevcutKullanici = null;
+
+try {
+  firebase.initializeApp(firebaseConfig);
+  db   = firebase.firestore();
+  auth = firebase.auth();
+
+  auth.onAuthStateChanged(kullanici => {
+    mevcutKullanici = kullanici;
+    kbGuncelle();
+    anaEkranPanelGuncelle();
+  });
+} catch(e) {
+  console.warn("Firebase yapılandırılmamış. Çevrimdışı modda çalışılıyor.", e.message);
+}
+
+// ─────────────────────────────────────────────────────────────
+//  KULLANICI BAR
+// ─────────────────────────────────────────────────────────────
+function kbGuncelle() {
+  const kutu = document.getElementById("kb-giris-durumu");
+  if (!mevcutKullanici) {
+    kutu.innerHTML = `<button class="kb-giris" onclick="authModalAc()">🔑 Giriş Yap / Kayıt Ol</button>`;
+    return;
+  }
+  const harf = (mevcutKullanici.displayName || mevcutKullanici.email || "?")[0].toUpperCase();
+  kutu.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="kb-avatar">${harf}</div>
+      <div>
+        <div class="kb-isim">${mevcutKullanici.displayName || mevcutKullanici.email}</div>
+        <div class="kb-puan" id="kb-toplam-puan">Puan yükleniyor…</div>
+      </div>
+      <button class="kb-cikis" onclick="cikisYap()">Çıkış</button>
+    </div>`;
+  kullaniciPuanYukle();
+}
+
+async function kullaniciPuanYukle() {
+  if (!mevcutKullanici || !db) return;
+  try {
+    const doc = await db.collection("kullanicilar").doc(mevcutKullanici.uid).get();
+    const el  = document.getElementById("kb-toplam-puan");
+    if (el) el.textContent = doc.exists
+      ? `⭐ Toplam: ${doc.data().toplamPuan || 0} puan`
+      : "⭐ Toplam: 0 puan";
+  } catch(_) {}
+}
+
+// ─────────────────────────────────────────────────────────────
+//  AUTH MODAL
+// ─────────────────────────────────────────────────────────────
+function authModalAc()  { document.getElementById("auth-overlay").classList.add("acik"); }
+function authModalKapat(){ document.getElementById("auth-overlay").classList.remove("acik"); }
+
+document.getElementById("auth-overlay").addEventListener("click", e => {
+  if (e.target === document.getElementById("auth-overlay")) authModalKapat();
+});
+
+function authSekme(tip, btn) {
+  document.querySelectorAll(".auth-sekme").forEach(b => b.classList.remove("aktif"));
+  btn.classList.add("aktif");
+  document.getElementById("auth-form-giris").style.display = tip === "giris" ? "flex" : "none";
+  document.getElementById("auth-form-kayit").style.display = tip === "kayit" ? "flex" : "none";
+  authHataTemizle();
+}
+
+function authHata(msg) {
+  const el = document.getElementById("auth-hata");
+  el.textContent = msg; el.classList.add("goster");
+}
+function authHataTemizle() {
+  document.getElementById("auth-hata").classList.remove("goster");
+}
+
+async function girisYap() {
+  if (!auth) { authHata("Firebase yapılandırılmamış."); return; }
+  const email = document.getElementById("giris-email").value.trim();
+  const sifre = document.getElementById("giris-sifre").value;
+  if (!email || !sifre) { authHata("E-posta ve şifre gereklidir."); return; }
+  try {
+    await auth.signInWithEmailAndPassword(email, sifre);
+    authModalKapat();
+  } catch(e) {
+    authHata(trHata(e.code));
+  }
+}
+
+async function kayitOl() {
+  if (!auth) { authHata("Firebase yapılandırılmamış."); return; }
+  const ad    = document.getElementById("kayit-ad").value.trim();
+  const email = document.getElementById("kayit-email").value.trim();
+  const sifre = document.getElementById("kayit-sifre").value;
+  if (!ad || !email || !sifre) { authHata("Tüm alanları doldurun."); return; }
+  if (sifre.length < 6)        { authHata("Şifre en az 6 karakter olmalıdır."); return; }
+  try {
+    const kred = await auth.createUserWithEmailAndPassword(email, sifre);
+    await kred.user.updateProfile({ displayName: ad });
+    await db.collection("kullanicilar").doc(kred.user.uid).set({
+      ad, email, toplamPuan: 0, oyunSayisi: 0, enIyiSkor: 0,
+      kayitTarihi: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    authModalKapat();
+  } catch(e) {
+    authHata(trHata(e.code));
+  }
+}
+
+async function cikisYap() {
+  if (auth) await auth.signOut();
+}
+
+function trHata(kod) {
+  const m = {
+    "auth/user-not-found":    "Bu e-posta ile kayıtlı kullanıcı bulunamadı.",
+    "auth/wrong-password":    "Şifre hatalı.",
+    "auth/email-already-in-use": "Bu e-posta zaten kullanımda.",
+    "auth/invalid-email":     "Geçersiz e-posta adresi.",
+    "auth/weak-password":     "Şifre çok zayıf.",
+    "auth/network-request-failed": "Bağlantı hatası.",
+    "auth/invalid-credential":"E-posta veya şifre hatalı.",
+  };
+  return m[kod] || "Bir hata oluştu: " + kod;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  SKOR KAYDET (oyun bitiminde çağrılır)
+// ─────────────────────────────────────────────────────────────
+async function firebaseSkorKaydet(puan) {
+  if (!mevcutKullanici || !db) return;
+  try {
+    const ref = db.collection("kullanicilar").doc(mevcutKullanici.uid);
+    await db.runTransaction(async t => {
+      const doc  = await t.get(ref);
+      const data = doc.exists ? doc.data() : { toplamPuan:0, oyunSayisi:0, enIyiSkor:0 };
+      t.set(ref, {
+        ad:         mevcutKullanici.displayName || mevcutKullanici.email,
+        email:      mevcutKullanici.email,
+        toplamPuan: (data.toplamPuan || 0) + puan,
+        oyunSayisi: (data.oyunSayisi || 0) + 1,
+        enIyiSkor:  Math.max(data.enIyiSkor || 0, puan),
+        sonOyun:    firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    });
+    kullaniciPuanYukle();
+  } catch(e) {
+    console.warn("Skor kaydedilemedi:", e);
+  }
+}
+
+// sonOyunuKaydet'i override et — Firebase sürümü
+const _orijinalSonucGoster = sonucGoster;
+// Orijinal sonucGoster'in içinde firebaseSkorKaydet çağrılsın diye hook
+const _orijinalRekorKaydet = rekorKaydet;
+function rekorKaydet(puan) {
+  _orijinalRekorKaydet(puan);
+  firebaseSkorKaydet(puan);
+}
+
+// ─────────────────────────────────────────────────────────────
+//  PUAN TABLOSU
+// ─────────────────────────────────────────────────────────────
+async function lbYukle() {
+  const icerik = document.getElementById("lb-icerik");
+  const bilgi  = document.getElementById("lb-kullanici-bilgi");
+
+  if (!db) {
+    icerik.innerHTML = `<div class="lb-bos">🔧 Firebase yapılandırması henüz tamamlanmamış.<br>firebaseConfig içindeki değerleri doldurun.</div>`;
+    return;
+  }
+
+  icerik.innerHTML = `<div class="lb-yukleniyor">⏳ Yükleniyor…</div>`;
+
+  try {
+    const snap = await db.collection("kullanicilar")
+      .orderBy("toplamPuan", "desc")
+      .limit(25)
+      .get();
+
+    if (snap.empty) {
+      icerik.innerHTML = `<div class="lb-bos">Henüz hiç oyuncu kaydı yok.<br>İlk sen ol! 🎮</div>`;
+      return;
+    }
+
+    const rozetler = ["🥇","🥈","🥉"];
+    let benimSiram = null;
+
+    let satirlar = "";
+    snap.forEach((doc, i) => {
+      const d    = doc.data();
+      const harf = (d.ad || d.email || "?")[0].toUpperCase();
+      const benim = mevcutKullanici && doc.id === mevcutKullanici.uid;
+      if (benim) benimSiram = i + 1;
+
+      const siraGoster = i < 3
+        ? `<span class="lb-rozet">${rozetler[i]}</span>`
+        : `<span style="color:rgba(255,255,255,0.35);font-size:13px">${i+1}</span>`;
+
+      satirlar += `
+        <tr class="${benim ? "benim" : ""}">
+          <td class="lb-sira lb-sira-${i+1}">${siraGoster}</td>
+          <td>
+            <div class="lb-isim-avatar">
+              <div class="lb-avatar-kucuk">${harf}</div>
+              <span class="lb-isim">${d.ad || d.email || "İsimsiz"}${benim ? " <span style='color:var(--altin);font-size:11px'>(Sen)</span>" : ""}</span>
+            </div>
+          </td>
+          <td><span class="lb-puan-deger">⭐ ${(d.toplamPuan||0).toLocaleString("tr-TR")}</span></td>
+          <td style="color:rgba(255,255,255,0.5);font-size:13px">${d.oyunSayisi || 0} oyun</td>
+          <td style="color:rgba(255,209,85,0.7);font-size:13px">🏆 ${(d.enIyiSkor||0).toLocaleString("tr-TR")}</td>
+        </tr>`;
+    });
+
+    bilgi.textContent = benimSiram
+      ? `Senin sıran: #${benimSiram}`
+      : (mevcutKullanici ? "Henüz puanın yok." : "");
+
+    icerik.innerHTML = `
+      <div class="lb-tablo-wrap">
+        <table class="lb-tablo">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Oyuncu</th>
+              <th>Toplam Puan</th>
+              <th>Oyun Sayısı</th>
+              <th>En İyi</th>
+            </tr>
+          </thead>
+          <tbody>${satirlar}</tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    icerik.innerHTML = `<div class="lb-bos">Yüklenirken hata oluştu.<br>${e.message}</div>`;
+  }
+}
+</script>
+</body>
+</html>
