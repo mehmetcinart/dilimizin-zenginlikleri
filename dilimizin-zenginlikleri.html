@@ -1805,22 +1805,21 @@ function trHata(kod) {
 
 async function misafirGiris() {
   if (!auth) { authHata("Firebase yapılandırılmamış."); return; }
+  authModalKapat();
   try {
     const kred = await auth.signInAnonymously();
     const uid  = kred.user.uid;
-    const ad   = "Misafir";
     const ref  = db.collection("kullanicilar").doc(uid);
     const doc  = await ref.get();
     if (!doc.exists) {
       await ref.set({
-        ad, email: null, misafir: true,
+        ad: "Misafir", email: null, misafir: true,
         toplamPuan: 0, oyunSayisi: 0, enIyiSkor: 0,
         kayitTarihi: firebase.firestore.FieldValue.serverTimestamp()
       });
     }
-    authModalKapat();
   } catch(e) {
-    authHata(trHata(e.code));
+    console.warn("Misafir girişi başarısız:", e.message);
   }
 }
 
