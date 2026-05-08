@@ -786,7 +786,7 @@
     <div class="auth-sekme-bar">
       <button class="auth-sekme aktif" id="sekme-giris-btn" onclick="authSekme('giris',this)">Giriş Yap</button>
       <button class="auth-sekme"       id="sekme-kayit-btn" onclick="authSekme('kayit',this)">Kayıt Ol</button>
-      <button class="auth-sekme"       id="sekme-sifre-btn" onclick="authSekme('sifre',this)" style="display:none">Şifre Değiştir</button>
+      <button class="auth-sekme"       id="sekme-sifre-btn" onclick="authSekme('profil',this)" style="display:none">Profil Düzenle</button>
     </div>
     <div class="auth-hata" id="auth-hata"></div>
 
@@ -815,12 +815,17 @@
       </button>
     </div>
 
-    <!-- Şifre Değiştir -->
-    <div class="auth-form" id="auth-form-sifre" style="display:none">
-      <input class="auth-input" id="sifre-mevcut" type="password" placeholder="Mevcut şifreniz" />
-      <input class="auth-input" id="sifre-yeni"   type="password" placeholder="Yeni şifre (min. 6 karakter)" />
-      <input class="auth-input" id="sifre-yeni2"  type="password" placeholder="Yeni şifre (tekrar)" />
-      <button class="auth-submit" onclick="sifreDegistir()">Şifreyi Güncelle</button>
+    <!-- Profil Düzenle -->
+    <div class="auth-form" id="auth-form-profil" style="display:none">
+      <label style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:-6px">Görünen Ad</label>
+      <input class="auth-input" id="profil-ad" type="text" placeholder="Görünen adınız" />
+      <div id="profil-sifre-alan">
+        <div class="auth-ayrac">Şifre Değiştir</div>
+        <input class="auth-input" id="profil-sifre-mevcut" type="password" placeholder="Mevcut şifreniz" />
+        <input class="auth-input" id="profil-sifre-yeni"   type="password" placeholder="Yeni şifre (opsiyonel, min. 6)" />
+        <input class="auth-input" id="profil-sifre-yeni2"  type="password" placeholder="Yeni şifre (tekrar)" />
+      </div>
+      <button class="auth-submit" onclick="profilKaydet()">Kaydet</button>
     </div>
 
     <!-- Misafir girişi -->
@@ -1701,6 +1706,9 @@ try {
 
   auth.onAuthStateChanged(kullanici => {
     mevcutKullanici = kullanici;
+    if (kullanici && document.getElementById("auth-overlay").classList.contains("acik")) {
+      authModalKapat();
+    }
     kbGuncelle();
     anaEkranPanelGuncelle();
   });
@@ -1731,7 +1739,6 @@ function kbGuncelle() {
     return;
   }
   const harf = (mevcutKullanici.displayName || mevcutKullanici.email || "?")[0].toUpperCase();
-  const emailKullanici = mevcutKullanici.providerData[0]?.providerId === "password";
   kutu.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px">
       <div class="kb-avatar">${harf}</div>
@@ -1739,7 +1746,7 @@ function kbGuncelle() {
         <div class="kb-isim">${mevcutKullanici.displayName || mevcutKullanici.email}</div>
         <div class="kb-puan" id="kb-toplam-puan">Puan yükleniyor…</div>
       </div>
-      ${emailKullanici ? `<button class="kb-cikis" onclick="sifreModalAc()">🔒 Şifre</button>` : ""}
+      <button class="kb-cikis" onclick="profilModalAc()">✏️ Profil</button>
       <button class="kb-cikis" onclick="cikisYap()">Çıkış</button>
     </div>`;
   kullaniciPuanYukle();
@@ -1770,13 +1777,18 @@ function authModalAc() {
 }
 function authModalKapat(){ document.getElementById("auth-overlay").classList.remove("acik"); }
 
-function sifreModalAc() {
+function profilModalAc() {
   document.getElementById("sekme-giris-btn").style.display = "none";
   document.getElementById("sekme-kayit-btn").style.display = "none";
   document.getElementById("sekme-sifre-btn").style.display = "";
   document.getElementById("auth-altyazi").style.display = "none";
   document.getElementById("auth-misafir-alan").style.display = "none";
-  authSekme("sifre", document.getElementById("sekme-sifre-btn"));
+  // İsmi önceden doldur
+  document.getElementById("profil-ad").value = mevcutKullanici?.displayName || "";
+  // Şifre alanını sadece e-posta kullanıcılarına göster
+  const emailKullanici = mevcutKullanici?.providerData[0]?.providerId === "password";
+  document.getElementById("profil-sifre-alan").style.display = emailKullanici ? "" : "none";
+  authSekme("profil", document.getElementById("sekme-sifre-btn"));
   document.getElementById("auth-overlay").classList.add("acik");
 }
 
@@ -1787,9 +1799,9 @@ document.getElementById("auth-overlay").addEventListener("click", e => {
 function authSekme(tip, btn) {
   document.querySelectorAll(".auth-sekme").forEach(b => b.classList.remove("aktif"));
   btn.classList.add("aktif");
-  document.getElementById("auth-form-giris").style.display = tip === "giris" ? "flex" : "none";
-  document.getElementById("auth-form-kayit").style.display = tip === "kayit" ? "flex" : "none";
-  document.getElementById("auth-form-sifre").style.display = tip === "sifre" ? "flex" : "none";
+  document.getElementById("auth-form-giris").style.display  = tip === "giris"  ? "flex" : "none";
+  document.getElementById("auth-form-kayit").style.display  = tip === "kayit"  ? "flex" : "none";
+  document.getElementById("auth-form-profil").style.display = tip === "profil" ? "flex" : "none";
   authHataTemizle();
 }
 
@@ -1910,23 +1922,49 @@ async function googleIleGiris() {
   }
 }
 
-async function sifreDegistir() {
-  if (!auth || !mevcutKullanici) return;
-  const mevcut = document.getElementById("sifre-mevcut").value;
-  const yeni   = document.getElementById("sifre-yeni").value;
-  const yeni2  = document.getElementById("sifre-yeni2").value;
-  if (!mevcut || !yeni || !yeni2) { authHata("Tüm alanları doldurun."); return; }
-  if (yeni.length < 6)            { authHata("Yeni şifre en az 6 karakter olmalıdır."); return; }
-  if (yeni !== yeni2)             { authHata("Yeni şifreler eşleşmiyor."); return; }
+async function profilKaydet() {
+  if (!mevcutKullanici) return;
+  const yeniAd = document.getElementById("profil-ad").value.trim();
+  if (!yeniAd) { authHata("Ad boş olamaz."); return; }
+
+  const emailKullanici = mevcutKullanici.providerData[0]?.providerId === "password";
+  const mevcut = emailKullanici ? document.getElementById("profil-sifre-mevcut").value : "";
+  const yeni   = emailKullanici ? document.getElementById("profil-sifre-yeni").value   : "";
+  const yeni2  = emailKullanici ? document.getElementById("profil-sifre-yeni2").value  : "";
+
+  if (emailKullanici && (yeni || yeni2)) {
+    if (!mevcut)          { authHata("Şifre değiştirmek için mevcut şifrenizi girin."); return; }
+    if (yeni.length < 6)  { authHata("Yeni şifre en az 6 karakter olmalıdır."); return; }
+    if (yeni !== yeni2)   { authHata("Yeni şifreler eşleşmiyor."); return; }
+  }
+
   try {
-    const credential = firebase.auth.EmailAuthProvider.credential(mevcutKullanici.email, mevcut);
-    await mevcutKullanici.reauthenticateWithCredential(credential);
-    await mevcutKullanici.updatePassword(yeni);
-    ["sifre-mevcut","sifre-yeni","sifre-yeni2"].forEach(id => document.getElementById(id).value = "");
-    const el = document.getElementById("auth-hata");
-    el.style.cssText = "display:block;background:rgba(45,122,79,0.25);border-color:#2d7a4f;color:#7efaab";
-    el.textContent = "✅ Şifreniz başarıyla güncellendi!";
-    setTimeout(() => { el.style.cssText = ""; authModalKapat(); }, 1800);
+    // Benzersiz isim kontrolü (isim değiştiyse)
+    if (yeniAd !== mevcutKullanici.displayName) {
+      const adKontrol = await db.collection("kullanicilar").where("ad", "==", yeniAd).get();
+      if (!adKontrol.empty) { authHata("Bu kullanıcı adı zaten alınmış."); return; }
+    }
+
+    // Firebase Auth displayName güncelle
+    await mevcutKullanici.updateProfile({ displayName: yeniAd });
+    // Firestore güncelle
+    await db.collection("kullanicilar").doc(mevcutKullanici.uid).update({ ad: yeniAd });
+
+    // Şifre değişikliği
+    if (emailKullanici && yeni) {
+      const credential = firebase.auth.EmailAuthProvider.credential(mevcutKullanici.email, mevcut);
+      await mevcutKullanici.reauthenticateWithCredential(credential);
+      await mevcutKullanici.updatePassword(yeni);
+    }
+
+    kbGuncelle();
+    ["profil-sifre-mevcut","profil-sifre-yeni","profil-sifre-yeni2"].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = "";
+    });
+    const hata = document.getElementById("auth-hata");
+    hata.style.cssText = "display:block;background:rgba(45,122,79,0.25);border-color:#2d7a4f;color:#7efaab";
+    hata.textContent = "✅ Profil başarıyla güncellendi!";
+    setTimeout(() => { hata.style.cssText = ""; authModalKapat(); }, 1800);
   } catch(e) {
     authHata(trHata(e.code));
   }
