@@ -714,6 +714,49 @@
       border-radius: 14px; color: rgba(255,255,255,0.55); font-size: 14px;
       line-height: 1.8;
     }
+
+    /* ── Admin Paneli ── */
+    .admin-ust {
+      display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; align-items: center;
+    }
+    .admin-sil-tumu {
+      background: #c0392b; color: #fff; border: none; border-radius: 10px;
+      padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
+      transition: background .2s;
+    }
+    .admin-sil-tumu:hover { background: #a93226; }
+    .admin-tablo { width: 100%; border-collapse: collapse; margin-top: 4px; }
+    .admin-tablo th {
+      text-align: left; font-size: 12px; font-weight: 700; letter-spacing: .5px;
+      color: rgba(255,255,255,0.45); padding: 6px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .admin-tablo td {
+      padding: 9px 10px; font-size: 13px; color: rgba(255,255,255,0.8);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      vertical-align: middle;
+    }
+    .admin-tablo tr:hover td { background: rgba(255,87,51,0.05); }
+    .admin-sil-btn {
+      background: rgba(192,57,43,0.2); color: #e74c3c; border: 1px solid rgba(192,57,43,0.4);
+      border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer;
+      transition: background .2s;
+    }
+    .admin-sil-btn:hover { background: rgba(192,57,43,0.45); }
+    .admin-onay-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75); z-index: 9000;
+      align-items: center; justify-content: center;
+    }
+    .admin-onay-overlay.acik { display: flex; }
+    .admin-onay-kutu {
+      background: #2a2050; border: 1px solid rgba(255,87,51,0.5);
+      border-radius: 20px; padding: 32px 28px; max-width: 360px; width: 90%;
+      text-align: center;
+    }
+    .admin-onay-kutu h3 { color: #FFD155; margin-bottom: 10px; font-size: 18px; }
+    .admin-onay-kutu p  { color: rgba(255,255,255,0.65); font-size: 14px; margin-bottom: 22px; line-height: 1.6; }
+    .admin-onay-btnler  { display: flex; gap: 12px; justify-content: center; }
   </style>
 </head>
 <body>
@@ -848,6 +891,7 @@
   <button class="sekme-btn aktif" onclick="sekmeGec('oyun',this)">🎮 Bilgi Yarışması</button>
   <button class="sekme-btn"       onclick="sekmeGec('siir',this)">📖 Şiir Köşesi</button>
   <button class="sekme-btn"       onclick="sekmeGec('lb',this)">🏆 Puan Tablosu</button>
+  <button class="sekme-btn" id="admin-sekme-btn" onclick="sekmeGec('admin',this)" style="display:none">⚙️ Yönetim</button>
 </nav>
 
 <!-- ════════════════════════════════════════════
@@ -960,6 +1004,34 @@
   </div>
 </div><!-- /sekme-lb -->
 
+<!-- ════════════════════════════════════════════
+     SEKME 4 – KULLANICI YÖNETİMİ (ADMIN)
+════════════════════════════════════════════ -->
+<div id="sekme-admin" class="sekme-icerik">
+  <div class="kart">
+    <h2 class="lb-baslik">⚙️ Kullanıcı Yönetimi</h2>
+    <p class="lb-aciklama">Tüm kayıtlı kullanıcıları görüntüle ve istatistiklerini yönet.</p>
+    <div class="admin-ust">
+      <button class="lb-yenile" onclick="adminKullanicilariYukle()">↻ Yenile</button>
+      <button class="admin-sil-tumu" onclick="adminTumIstatistikSilOnay()">🗑️ Tüm İstatistikleri Sil</button>
+    </div>
+    <div id="admin-icerik">
+      <div class="lb-yukleniyor">Yükleniyor…</div>
+    </div>
+  </div>
+</div><!-- /sekme-admin -->
+
+<!-- Admin silme onay modalı -->
+<div class="admin-onay-overlay" id="admin-onay-overlay">
+  <div class="admin-onay-kutu">
+    <h3 id="admin-onay-baslik">Emin misin?</h3>
+    <p id="admin-onay-mesaj">Bu işlem geri alınamaz.</p>
+    <div class="admin-onay-btnler">
+      <button class="onay-onayla" id="admin-onay-evet" onclick="">Evet, Sil</button>
+      <button class="onay-iptal" onclick="adminOnayKapat()">İptal</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ══════════════════════════════════════════════════════════════
@@ -1408,8 +1480,9 @@ function sekmeGec(id, btn) {
   document.querySelectorAll(".sekme-btn").forEach(b => b.classList.remove("aktif"));
   document.getElementById("sekme-" + id).classList.add("aktif");
   btn.classList.add("aktif");
-  if (id === "siir") siirListeOlustur("tumu");
-  if (id === "lb")   lbYukle();
+  if (id === "siir")  siirListeOlustur("tumu");
+  if (id === "lb")    lbYukle();
+  if (id === "admin") adminKullanicilariYukle();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1759,6 +1832,7 @@ try {
     if (db) lbBaslat();
     kbGuncelle();
     anaEkranPanelGuncelle();
+    adminSekmeGuncelle();
   });
 } catch(e) {
   console.warn("Firebase yapılandırılmamış. Çevrimdışı modda çalışılıyor.", e.message);
@@ -2088,6 +2162,112 @@ function lbBaslat() {
       const el = document.getElementById("lb-icerik");
       if (el) el.innerHTML = `<div class="lb-bos">Yüklenirken hata oluştu.</div>`;
     });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  ADMIN PANELİ
+// ─────────────────────────────────────────────────────────────
+const ADMIN_EMAIL = "mehmetcinartursak497@gmail.com";
+
+function isAdmin() {
+  return mevcutKullanici && !mevcutKullanici.isAnonymous &&
+    mevcutKullanici.email === ADMIN_EMAIL;
+}
+
+function adminSekmeGuncelle() {
+  const btn = document.getElementById("admin-sekme-btn");
+  if (btn) btn.style.display = isAdmin() ? "" : "none";
+}
+
+async function adminKullanicilariYukle() {
+  const icerik = document.getElementById("admin-icerik");
+  if (!icerik) return;
+  if (!isAdmin() || !db) {
+    icerik.innerHTML = `<div class="lb-bos">Yetkisiz erişim.</div>`;
+    return;
+  }
+  icerik.innerHTML = `<div class="lb-yukleniyor">⏳ Yükleniyor…</div>`;
+  try {
+    const snap = await db.collection("kullanicilar").orderBy("toplamPuan", "desc").get();
+    if (snap.empty) {
+      icerik.innerHTML = `<div class="lb-bos">Henüz kayıtlı kullanıcı yok.</div>`;
+      return;
+    }
+    let satirlar = "";
+    snap.forEach(doc => {
+      const d  = doc.data();
+      const ad = d.ad || d.email || "İsimsiz";
+      const tip = d.misafir ? "👤 Misafir" : "✉️ " + (d.email || "—");
+      satirlar += `
+        <tr>
+          <td>
+            <div style="font-weight:700">${ad}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px">${tip}</div>
+          </td>
+          <td>⭐ ${(d.toplamPuan||0).toLocaleString("tr-TR")}</td>
+          <td>${d.oyunSayisi||0} oyun</td>
+          <td>🏆 ${(d.enIyiSkor||0).toLocaleString("tr-TR")}</td>
+          <td><button class="admin-sil-btn" onclick="adminKullaniciSilOnay('${doc.id}','${ad.replace(/'/g,"\\'")}')">🗑️ Sil</button></td>
+        </tr>`;
+    });
+    icerik.innerHTML = `
+      <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:10px">${snap.size} kullanıcı bulundu</div>
+      <div class="lb-tablo-wrap">
+        <table class="admin-tablo">
+          <thead><tr><th>Kullanıcı</th><th>Toplam Puan</th><th>Oyun</th><th>En İyi</th><th>İşlem</th></tr></thead>
+          <tbody>${satirlar}</tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    icerik.innerHTML = `<div class="lb-bos">Hata: ${e.message}</div>`;
+  }
+}
+
+function adminKullaniciSilOnay(uid, ad) {
+  document.getElementById("admin-onay-baslik").textContent = "Kullanıcı Silinsin mi?";
+  document.getElementById("admin-onay-mesaj").textContent = `"${ad}" kullanıcısının tüm istatistikleri kalıcı olarak silinecek.`;
+  document.getElementById("admin-onay-evet").onclick = () => adminKullaniciSil(uid);
+  document.getElementById("admin-onay-overlay").classList.add("acik");
+}
+
+async function adminKullaniciSil(uid) {
+  adminOnayKapat();
+  if (!isAdmin() || !db) return;
+  const icerik = document.getElementById("admin-icerik");
+  try {
+    await db.collection("kullanicilar").doc(uid).delete();
+    adminKullanicilariYukle();
+  } catch(e) {
+    if (icerik) icerik.insertAdjacentHTML("afterbegin",
+      `<div class="lb-bos" style="color:#e74c3c">Silme başarısız: ${e.message}</div>`);
+  }
+}
+
+function adminTumIstatistikSilOnay() {
+  document.getElementById("admin-onay-baslik").textContent = "Tüm İstatistikler Silinsin mi?";
+  document.getElementById("admin-onay-mesaj").textContent = "Tüm kullanıcıların istatistikleri kalıcı olarak silinecek. Bu işlem geri alınamaz!";
+  document.getElementById("admin-onay-evet").onclick = adminTumIstatistikSil;
+  document.getElementById("admin-onay-overlay").classList.add("acik");
+}
+
+async function adminTumIstatistikSil() {
+  adminOnayKapat();
+  if (!isAdmin() || !db) return;
+  const icerik = document.getElementById("admin-icerik");
+  if (icerik) icerik.innerHTML = `<div class="lb-yukleniyor">⏳ Siliniyor…</div>`;
+  try {
+    const snap = await db.collection("kullanicilar").get();
+    const batch = db.batch();
+    snap.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+    adminKullanicilariYukle();
+  } catch(e) {
+    if (icerik) icerik.innerHTML = `<div class="lb-bos" style="color:#e74c3c">Silme başarısız: ${e.message}</div>`;
+  }
+}
+
+function adminOnayKapat() {
+  document.getElementById("admin-onay-overlay").classList.remove("acik");
 }
 
 function lbRender(snap) {
