@@ -917,7 +917,7 @@
     <div class="secenekler"   id="secenekler-kutu"></div>
     <div class="sonuc-balon"  id="sonuc-balon"></div>
     <button class="btn btn-altin sonraki-btn" id="sonraki-btn" onclick="sonrakiSoru()" style="display:none;">Sonraki Soru ›</button>
-    <button class="btn btn-outline sonraki-btn" id="bitir-alt-btn" onclick="testiSonlandirOnay()" style="display:none;">✕ Testi Bitir</button>
+    <button class="btn btn-outline sonraki-btn" id="bitir-alt-btn" onclick="this.disabled=true;testiSonlandirOnay()" style="display:none;">✕ Testi Bitir</button>
   </div>
 
   <!-- Sonuç -->
@@ -1346,6 +1346,7 @@ let durum = {
   geriSayim: null,
   kalanSure: 15,
   cevaplandi: false,
+  tamamlandi: false,
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -1503,6 +1504,8 @@ function oyunuBaslat() {
   durum.dogruSayi  = 0;
   durum.yanlisSayi = 0;
   durum.toplamSure = 0;
+  durum.tamamlandi = false;
+  _aktifOyunId = Date.now() + "_" + Math.random().toString(36).slice(2);
 
   const cubuklar = document.getElementById("ilerleme-cubuklar");
   cubuklar.innerHTML = havuz.map((_,i) => `<div class="ilerleme-cubuk" id="cubuk-${i}"></div>`).join("");
@@ -1531,7 +1534,9 @@ function soruGoster() {
   document.getElementById("soru-metni").innerHTML    = s.soru;
   document.getElementById("sonuc-balon").className   = "sonuc-balon";
   document.getElementById("sonraki-btn").style.display   = "none";
-  document.getElementById("bitir-alt-btn").style.display = "none";
+  const _bitirBtn = document.getElementById("bitir-alt-btn");
+  _bitirBtn.style.display = "none";
+  _bitirBtn.disabled = false;
 
   document.querySelectorAll(".ilerleme-cubuk").forEach((c,i) => {
     c.className = "ilerleme-cubuk" + (i === durum.soruIndex ? " aktif" : "");
@@ -1629,6 +1634,8 @@ function gosterSonrakiBtn() {
 }
 
 function sonSoruTamamla() {
+  if (durum.tamamlandi) return;
+  durum.tamamlandi = true;
   clearInterval(durum.geriSayim);
   sonOyunuKaydet();
   rekorKaydet(durum.puan);
@@ -1780,11 +1787,28 @@ const firebaseConfig = {
 //  Firebase başlat
 // ─────────────────────────────────────────────────────────────
 let db, auth, mevcutKullanici = null, _cachedStats = null, _benimSiram = null;
+let _aktifOyunId = null;
+const _kaydedilenOyunlar = new Set();
 
 try {
   firebase.initializeApp(firebaseConfig);
   db   = firebase.firestore();
   auth = firebase.auth();
+
+  // Gerçek zamanlı sıfırlama: admin "Tümünü Sıfırla" basınca sayfada açık TÜM kullanıcılar anında sıfırlanır
+  db.collection("meta").doc("resetAll").onSnapshot(doc => {
+    if (!doc.exists || !doc.data().resetAt) return;
+    const resetMs   = doc.data().resetAt.toMillis();
+    const lastReset = parseInt(localStorage.getItem("dlz_lastReset") || "0");
+    if (resetMs <= lastReset) return;
+    localStorage.setItem("dlz_lastReset", resetMs.toString());
+    localStorage.removeItem(LS_REKOR);
+    localStorage.removeItem(LS_SON_OYUN);
+    _cachedStats = null;
+    _benimSiram  = null;
+    kullaniciPuanYukle();
+    anaEkranPanelGuncelle();
+  });
 
   auth.onAuthStateChanged(async kullanici => {
     mevcutKullanici = kullanici;
@@ -1799,6 +1823,7 @@ try {
       try {
         const doc = await db.collection("kullanicilar").doc(kullanici.uid).get();
         if (doc.exists) _cachedStats = doc.data();
+        else _cachedStats = null;
       } catch(_) {}
       kullaniciPuanYukle();
       anaEkranPanelGuncelle();
@@ -1830,7 +1855,6 @@ function kbGuncelle() {
     return;
   }
   const harf = (mevcutKullanici.displayName || mevcutKullanici.email || "?")[0].toUpperCase();
-  const silBtn   = `<button class="kb-cikis" style="background:rgba(192,57,43,0.2);color:#e74c3c;border-color:rgba(192,57,43,0.35)" onclick="kendiVerileriniSilOnay()">🗑️ Sıfırla</button>`;
   const adminBtn = isAdmin()
     ? `<button class="kb-cikis" style="background:rgba(192,57,43,0.35);color:#e74c3c;border-color:rgba(192,57,43,0.5);font-weight:700" onclick="adminOnayAc()">⚠️ Tümünü Sıfırla</button>`
     : "";
@@ -1842,7 +1866,6 @@ function kbGuncelle() {
         <div id="kb-toplam-puan" style="font-size:11px;color:rgba(255,209,85,0.7)"></div>
       </div>
       <button class="kb-cikis" onclick="profilModalAc()">✏️ Profil</button>
-      ${silBtn}
       ${adminBtn}
       <button class="kb-cikis" onclick="cikisYap()">Çıkış</button>
     </div>`;
@@ -2073,6 +2096,8 @@ async function profilKaydet() {
 // ─────────────────────────────────────────────────────────────
 async function firebaseSkorKaydet(puan) {
   if (!mevcutKullanici || !db) return;
+  if (!_aktifOyunId || _kaydedilenOyunlar.has(_aktifOyunId)) return;
+  _kaydedilenOyunlar.add(_aktifOyunId);
   const oyunDogru      = durum.dogruSayi  || 0;
   const oyunYanlis     = durum.yanlisSayi || 0;
   const oyunSoruSayisi = (durum.sorular || []).length;
@@ -2190,17 +2215,14 @@ function adminOnayKapat() {
 async function adminTumIstatistikSil() {
   adminOnayKapat();
   if (!isAdmin() || !db) return;
-  // Önce kendi cihazını temizle
-  _cachedStats = null;
-  localStorage.removeItem(LS_REKOR);
-  localStorage.removeItem(LS_SON_OYUN);
-  kullaniciPuanYukle();
-  anaEkranPanelGuncelle();
-  // Sonra Firestore'dan sil
   try {
     const snap = await db.collection("kullanicilar").get();
     const batch = db.batch();
     snap.forEach(doc => batch.delete(doc.ref));
+    // Timestamp yaz → onSnapshot tüm bağlı kullanıcıları anında sıfırlar (admin dahil)
+    batch.set(db.collection("meta").doc("resetAll"), {
+      resetAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
     await batch.commit();
   } catch(e) {
     console.warn("Firestore silme başarısız:", e.message);
@@ -2221,8 +2243,9 @@ function lbRender(snap) {
   const rozetler = ["🥇","🥈","🥉"];
   let benimSiram = null;
   let satirlar = "";
+  let i = 0;
 
-  snap.forEach((doc, i) => {
+  snap.forEach((doc) => {
     const d     = doc.data();
     const harf  = (d.ad || d.email || "?")[0].toUpperCase();
     const benim = mevcutKullanici && (
@@ -2248,6 +2271,7 @@ function lbRender(snap) {
         <td style="color:rgba(255,255,255,0.5);font-size:13px">${d.oyunSayisi || 0} oyun</td>
         <td style="color:rgba(255,209,85,0.7);font-size:13px">🏆 ${(d.enIyiSkor||0).toLocaleString("tr-TR")}</td>
       </tr>`;
+    i++;
   });
 
   _benimSiram = benimSiram;

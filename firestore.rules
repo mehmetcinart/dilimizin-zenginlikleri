@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /kullanicilar/{id} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == id;
+      allow delete: if request.auth != null && request.auth.token.email == "mehmetcinartursak497@gmail.com";
+    }
+    match /meta/{doc} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == "mehmetcinartursak497@gmail.com";
+    }
+  }
+}
