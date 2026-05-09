@@ -2147,6 +2147,7 @@ async function adminTumIstatistikSil() {
     _cachedStats = null;
     localStorage.removeItem(LS_REKOR);
     localStorage.removeItem(LS_SON_OYUN);
+    kullaniciPuanYukle();
     anaEkranPanelGuncelle();
   } catch(e) {
     console.warn("Silme başarısız:", e.message);
