@@ -1335,9 +1335,13 @@ async function anaEkranPanelGuncelle() {
   let toplamPuan = 0, toplamDogru = 0, toplamYanlis = 0, toplamSoruSayisi = 0, toplamSure = 0;
   if (mevcutKullanici && db) {
     try {
-      const doc = await db.collection("kullanicilar").doc(mevcutKullanici.uid).get();
-      if (doc.exists) {
-        const d = doc.data();
+      let d = _cachedStats;
+      if (!d) {
+        const doc = await db.collection("kullanicilar").doc(mevcutKullanici.uid).get();
+        d = doc.exists ? doc.data() : null;
+        if (d) _cachedStats = d;
+      }
+      if (d) {
         toplamPuan       = d.toplamPuan       || 0;
         toplamDogru      = d.toplamDogru      || 0;
         toplamYanlis     = d.toplamYanlis     || 0;
@@ -1740,7 +1744,7 @@ const firebaseConfig = {
 // ─────────────────────────────────────────────────────────────
 //  Firebase başlat
 // ─────────────────────────────────────────────────────────────
-let db, auth, mevcutKullanici = null;
+let db, auth, mevcutKullanici = null, _cachedStats = null;
 
 try {
   firebase.initializeApp(firebaseConfig);
@@ -2032,21 +2036,28 @@ async function firebaseSkorKaydet(puan) {
       const adAdi = mevcutKullanici.isAnonymous
         ? "Misafir"
         : (mevcutKullanici.displayName || mevcutKullanici.email);
+      const yeniToplamPuan        = (data.toplamPuan       || 0) + puan;
+      const yeniToplamDogru       = (data.toplamDogru      || 0) + oyunDogru;
+      const yeniToplamYanlis      = (data.toplamYanlis     || 0) + oyunYanlis;
+      const yeniToplamSoruSayisi  = (data.toplamSoruSayisi || 0) + oyunSoruSayisi;
+      const yeniToplamSure        = (data.toplamSure       || 0) + oyunSure;
+      _cachedStats = { toplamPuan: yeniToplamPuan, toplamDogru: yeniToplamDogru, toplamYanlis: yeniToplamYanlis, toplamSoruSayisi: yeniToplamSoruSayisi, toplamSure: yeniToplamSure };
       t.set(ref, {
         ad:              adAdi,
         email:           mevcutKullanici.email || null,
         misafir:         mevcutKullanici.isAnonymous || false,
-        toplamPuan:      (data.toplamPuan      || 0) + puan,
+        toplamPuan:      yeniToplamPuan,
         oyunSayisi:      (data.oyunSayisi      || 0) + 1,
         enIyiSkor:       Math.max(data.enIyiSkor || 0, puan),
-        toplamDogru:     (data.toplamDogru     || 0) + oyunDogru,
-        toplamYanlis:    (data.toplamYanlis    || 0) + oyunYanlis,
-        toplamSoruSayisi:(data.toplamSoruSayisi|| 0) + oyunSoruSayisi,
-        toplamSure:      (data.toplamSure      || 0) + oyunSure,
+        toplamDogru:     yeniToplamDogru,
+        toplamYanlis:    yeniToplamYanlis,
+        toplamSoruSayisi:yeniToplamSoruSayisi,
+        toplamSure:      yeniToplamSure,
         sonOyun:         firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     });
     kullaniciPuanYukle();
+    anaEkranPanelGuncelle();
   } catch(e) {
     console.warn("Skor kaydedilemedi:", e);
   }
