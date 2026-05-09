@@ -1778,13 +1778,15 @@ try {
     }
     if (db) lbBaslat();
     kbGuncelle();
+    anaEkranPanelGuncelle();
     if (kullanici && db) {
       try {
         const doc = await db.collection("kullanicilar").doc(kullanici.uid).get();
         if (doc.exists) _cachedStats = doc.data();
       } catch(_) {}
+      kullaniciPuanYukle();
+      anaEkranPanelGuncelle();
     }
-    anaEkranPanelGuncelle();
   });
 } catch(e) {
   console.warn("Firebase yapılandırılmamış. Çevrimdışı modda çalışılıyor.", e.message);
@@ -2053,40 +2055,44 @@ async function profilKaydet() {
 // ─────────────────────────────────────────────────────────────
 async function firebaseSkorKaydet(puan) {
   if (!mevcutKullanici || !db) return;
+  const oyunDogru      = durum.dogruSayi  || 0;
+  const oyunYanlis     = durum.yanlisSayi || 0;
+  const oyunSoruSayisi = (durum.sorular || []).length;
+  const oyunSure       = durum.toplamSure || 0;
+
+  // Önce UI'ı hemen güncelle (optimistic)
+  const prev = _cachedStats || {};
+  _cachedStats = {
+    toplamPuan:       (prev.toplamPuan       || 0) + puan,
+    toplamDogru:      (prev.toplamDogru      || 0) + oyunDogru,
+    toplamYanlis:     (prev.toplamYanlis     || 0) + oyunYanlis,
+    toplamSoruSayisi: (prev.toplamSoruSayisi || 0) + oyunSoruSayisi,
+    toplamSure:       (prev.toplamSure       || 0) + oyunSure,
+    enIyiSkor:        Math.max(prev.enIyiSkor || 0, puan),
+  };
+  kullaniciPuanYukle();
+  anaEkranPanelGuncelle();
+
+  // Sonra Firestore'a yaz (arka planda)
   try {
-    const ref = db.collection("kullanicilar").doc(mevcutKullanici.uid);
-    const oyunDogru      = durum.dogruSayi  || 0;
-    const oyunYanlis     = durum.yanlisSayi || 0;
-    const oyunSoruSayisi = (durum.sorular || []).length;
-    const oyunSure       = durum.toplamSure || 0;
-    await db.runTransaction(async t => {
-      const doc  = await t.get(ref);
-      const data = doc.exists ? doc.data() : { toplamPuan:0, oyunSayisi:0, enIyiSkor:0 };
-      const adAdi = mevcutKullanici.isAnonymous
-        ? "Misafir"
-        : (mevcutKullanici.displayName || mevcutKullanici.email);
-      const yeniToplamPuan        = (data.toplamPuan       || 0) + puan;
-      const yeniToplamDogru       = (data.toplamDogru      || 0) + oyunDogru;
-      const yeniToplamYanlis      = (data.toplamYanlis     || 0) + oyunYanlis;
-      const yeniToplamSoruSayisi  = (data.toplamSoruSayisi || 0) + oyunSoruSayisi;
-      const yeniToplamSure        = (data.toplamSure       || 0) + oyunSure;
-      _cachedStats = { toplamPuan: yeniToplamPuan, toplamDogru: yeniToplamDogru, toplamYanlis: yeniToplamYanlis, toplamSoruSayisi: yeniToplamSoruSayisi, toplamSure: yeniToplamSure };
-      t.set(ref, {
-        ad:              adAdi,
-        email:           mevcutKullanici.email || null,
-        misafir:         mevcutKullanici.isAnonymous || false,
-        toplamPuan:      yeniToplamPuan,
-        oyunSayisi:      (data.oyunSayisi      || 0) + 1,
-        enIyiSkor:       Math.max(data.enIyiSkor || 0, puan),
-        toplamDogru:     yeniToplamDogru,
-        toplamYanlis:    yeniToplamYanlis,
-        toplamSoruSayisi:yeniToplamSoruSayisi,
-        toplamSure:      yeniToplamSure,
-        sonOyun:         firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-    });
-    kullaniciPuanYukle();
-    anaEkranPanelGuncelle();
+    const ref   = db.collection("kullanicilar").doc(mevcutKullanici.uid);
+    const FS    = firebase.firestore.FieldValue;
+    const adAdi = mevcutKullanici.isAnonymous
+      ? "Misafir"
+      : (mevcutKullanici.displayName || mevcutKullanici.email);
+    await ref.set({
+      ad:               adAdi,
+      email:            mevcutKullanici.email || null,
+      misafir:          mevcutKullanici.isAnonymous || false,
+      toplamPuan:       FS.increment(puan),
+      oyunSayisi:       FS.increment(1),
+      enIyiSkor:        _cachedStats.enIyiSkor,
+      toplamDogru:      FS.increment(oyunDogru),
+      toplamYanlis:     FS.increment(oyunYanlis),
+      toplamSoruSayisi: FS.increment(oyunSoruSayisi),
+      toplamSure:       FS.increment(oyunSure),
+      sonOyun:          FS.serverTimestamp()
+    }, { merge: true });
   } catch(e) {
     console.warn("Skor kaydedilemedi:", e);
   }
@@ -2140,18 +2146,20 @@ function adminOnayKapat() {
 async function adminTumIstatistikSil() {
   adminOnayKapat();
   if (!isAdmin() || !db) return;
+  // Önce kendi cihazını temizle
+  _cachedStats = null;
+  localStorage.removeItem(LS_REKOR);
+  localStorage.removeItem(LS_SON_OYUN);
+  kullaniciPuanYukle();
+  anaEkranPanelGuncelle();
+  // Sonra Firestore'dan sil
   try {
     const snap = await db.collection("kullanicilar").get();
     const batch = db.batch();
     snap.forEach(doc => batch.delete(doc.ref));
     await batch.commit();
-    _cachedStats = null;
-    localStorage.removeItem(LS_REKOR);
-    localStorage.removeItem(LS_SON_OYUN);
-    kullaniciPuanYukle();
-    anaEkranPanelGuncelle();
   } catch(e) {
-    console.warn("Silme başarısız:", e.message);
+    console.warn("Firestore silme başarısız:", e.message);
   }
 }
 
