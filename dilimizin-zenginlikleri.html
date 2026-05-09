@@ -1809,7 +1809,6 @@ function kbGuncelle() {
         <div class="kb-isim">Misafir</div>
         <button class="kb-cikis" onclick="cikisYap()">Çıkış</button>
       </div>`;
-    kullaniciPuanYukle();
     return;
   }
   const harf = (mevcutKullanici.displayName || mevcutKullanici.email || "?")[0].toUpperCase();
@@ -1819,7 +1818,10 @@ function kbGuncelle() {
   kutu.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px">
       <div class="kb-avatar">${harf}</div>
-      <div class="kb-isim">${mevcutKullanici.displayName || mevcutKullanici.email}</div>
+      <div style="display:flex;flex-direction:column;line-height:1.2">
+        <div class="kb-isim">${mevcutKullanici.displayName || mevcutKullanici.email}</div>
+        <div id="kb-toplam-puan" style="font-size:11px;color:rgba(255,209,85,0.7)"></div>
+      </div>
       <button class="kb-cikis" onclick="profilModalAc()">✏️ Profil</button>
       ${adminBtn}
       <button class="kb-cikis" onclick="cikisYap()">Çıkış</button>
@@ -2085,7 +2087,6 @@ async function firebaseSkorKaydet(puan) {
     });
     kullaniciPuanYukle();
     anaEkranPanelGuncelle();
-    lbBaslat();
   } catch(e) {
     console.warn("Skor kaydedilemedi:", e);
   }
