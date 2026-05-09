@@ -766,6 +766,11 @@
   <div class="sp-isi-bar"><div class="sp-isi-dolgu" id="sp-isi" style="width:0%"></div></div>
   <div class="sp-isi-metin" id="sp-isi-metin">Doğruluk: –</div>
 
+  <div class="sp-satir" id="sp-siralama-satir" style="display:none">
+    <div class="sp-etiket"><span class="sp-etiket-ikon">🏅</span>Sıralama</div>
+    <div class="sp-deger vurgu" id="sp-siralama">–</div>
+  </div>
+
   <div class="sp-rekor">
     <div class="sp-rekor-label">🏆 En Yüksek Puan</div>
     <div class="sp-rekor-deger" id="sp-rekor">0</div>
@@ -979,10 +984,10 @@
 <!-- Admin sıfırlama onay modalı -->
 <div class="admin-onay-overlay" id="admin-onay-overlay">
   <div class="admin-onay-kutu">
-    <h3>Tüm Skorlar Silinsin mi?</h3>
-    <p>Tüm kullanıcıların istatistikleri kalıcı olarak silinecek. Bu işlem geri alınamaz!</p>
+    <h3 id="admin-onay-baslik">Emin misin?</h3>
+    <p id="admin-onay-mesaj">Bu işlem geri alınamaz.</p>
     <div class="admin-onay-btnler">
-      <button class="onay-onayla" onclick="adminTumIstatistikSil()">Evet, Sil</button>
+      <button class="onay-onayla" id="admin-onay-evet">Evet, Sil</button>
       <button class="onay-iptal" onclick="adminOnayKapat()">İptal</button>
     </div>
   </div>
@@ -1370,6 +1375,17 @@ function anaEkranPanelGuncelle() {
   }
 
   document.getElementById("sp-puan").textContent = mevcutKullanici ? toplamPuan : "–";
+
+  const siraSatir = document.getElementById("sp-siralama-satir");
+  const siraEl    = document.getElementById("sp-siralama");
+  if (siraEl) {
+    if (mevcutKullanici && _benimSiram) {
+      siraEl.textContent = "#" + _benimSiram;
+      if (siraSatir) siraSatir.style.display = "";
+    } else {
+      if (siraSatir) siraSatir.style.display = "none";
+    }
+  }
 
   if (toplamSoruSayisi > 0) {
     const cevaplanan = toplamDogru + toplamYanlis;
@@ -1763,7 +1779,7 @@ const firebaseConfig = {
 // ─────────────────────────────────────────────────────────────
 //  Firebase başlat
 // ─────────────────────────────────────────────────────────────
-let db, auth, mevcutKullanici = null, _cachedStats = null;
+let db, auth, mevcutKullanici = null, _cachedStats = null, _benimSiram = null;
 
 try {
   firebase.initializeApp(firebaseConfig);
@@ -1814,8 +1830,9 @@ function kbGuncelle() {
     return;
   }
   const harf = (mevcutKullanici.displayName || mevcutKullanici.email || "?")[0].toUpperCase();
+  const silBtn   = `<button class="kb-cikis" style="background:rgba(192,57,43,0.2);color:#e74c3c;border-color:rgba(192,57,43,0.35)" onclick="kendiVerileriniSilOnay()">🗑️ Sıfırla</button>`;
   const adminBtn = isAdmin()
-    ? `<button class="kb-cikis" style="background:rgba(192,57,43,0.25);color:#e74c3c;border-color:rgba(192,57,43,0.4)" onclick="adminOnayAc()">🗑️ Sıfırla</button>`
+    ? `<button class="kb-cikis" style="background:rgba(192,57,43,0.35);color:#e74c3c;border-color:rgba(192,57,43,0.5);font-weight:700" onclick="adminOnayAc()">⚠️ Tümünü Sıfırla</button>`
     : "";
   kutu.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px">
@@ -1825,6 +1842,7 @@ function kbGuncelle() {
         <div id="kb-toplam-puan" style="font-size:11px;color:rgba(255,209,85,0.7)"></div>
       </div>
       <button class="kb-cikis" onclick="profilModalAc()">✏️ Profil</button>
+      ${silBtn}
       ${adminBtn}
       <button class="kb-cikis" onclick="cikisYap()">Çıkış</button>
     </div>`;
@@ -2135,7 +2153,33 @@ function isAdmin() {
     mevcutKullanici.email === ADMIN_EMAIL;
 }
 
+function kendiVerileriniSilOnay() {
+  document.getElementById("admin-onay-baslik").textContent = "İstatistiklerini Sil?";
+  document.getElementById("admin-onay-mesaj").textContent  = "Puan tablosundaki tüm istatistiklerin silinecek. Bu işlem geri alınamaz!";
+  document.getElementById("admin-onay-evet").onclick = kendiVerileriniSil;
+  document.getElementById("admin-onay-overlay").classList.add("acik");
+}
+
+async function kendiVerileriniSil() {
+  adminOnayKapat();
+  if (!mevcutKullanici || !db) return;
+  _cachedStats = null;
+  _benimSiram  = null;
+  localStorage.removeItem(LS_REKOR);
+  localStorage.removeItem(LS_SON_OYUN);
+  kullaniciPuanYukle();
+  anaEkranPanelGuncelle();
+  try {
+    await db.collection("kullanicilar").doc(mevcutKullanici.uid).delete();
+  } catch(e) {
+    console.warn("Veri silinemedi:", e.message);
+  }
+}
+
 function adminOnayAc() {
+  document.getElementById("admin-onay-baslik").textContent = "Tüm Skorlar Silinsin mi?";
+  document.getElementById("admin-onay-mesaj").textContent  = "Tüm kullanıcıların istatistikleri kalıcı olarak silinecek. Bu işlem geri alınamaz!";
+  document.getElementById("admin-onay-evet").onclick = adminTumIstatistikSil;
   document.getElementById("admin-onay-overlay").classList.add("acik");
 }
 
@@ -2181,7 +2225,10 @@ function lbRender(snap) {
   snap.forEach((doc, i) => {
     const d     = doc.data();
     const harf  = (d.ad || d.email || "?")[0].toUpperCase();
-    const benim = mevcutKullanici && doc.id === mevcutKullanici.uid;
+    const benim = mevcutKullanici && (
+      doc.id === mevcutKullanici.uid ||
+      (!mevcutKullanici.isAnonymous && d.email && d.email === mevcutKullanici.email)
+    );
     if (benim) benimSiram = i + 1;
 
     const siraGoster = i < 3
@@ -2203,6 +2250,8 @@ function lbRender(snap) {
       </tr>`;
   });
 
+  _benimSiram = benimSiram;
+  anaEkranPanelGuncelle();
   if (bilgi) bilgi.textContent = benimSiram
     ? `Senin sıran: #${benimSiram}`
     : (mevcutKullanici ? "Henüz puanın yok." : "");
