@@ -1355,27 +1355,18 @@ function anaEkraniGoster() {
   panelGoster(true);
 }
 
-async function anaEkranPanelGuncelle() {
+function anaEkranPanelGuncelle() {
   const rekor = parseInt(localStorage.getItem(LS_REKOR) || "0");
   document.getElementById("sp-rekor").textContent = rekor;
 
   let toplamPuan = 0, toplamDogru = 0, toplamYanlis = 0, toplamSoruSayisi = 0, toplamSure = 0;
-  if (mevcutKullanici && db) {
-    try {
-      let d = _cachedStats;
-      if (!d) {
-        const doc = await db.collection("kullanicilar").doc(mevcutKullanici.uid).get();
-        d = doc.exists ? doc.data() : null;
-        if (d) _cachedStats = d;
-      }
-      if (d) {
-        toplamPuan       = d.toplamPuan       || 0;
-        toplamDogru      = d.toplamDogru      || 0;
-        toplamYanlis     = d.toplamYanlis     || 0;
-        toplamSoruSayisi = d.toplamSoruSayisi || 0;
-        toplamSure       = d.toplamSure       || 0;
-      }
-    } catch(_) {}
+  const d = _cachedStats;
+  if (mevcutKullanici && d) {
+    toplamPuan       = d.toplamPuan       || 0;
+    toplamDogru      = d.toplamDogru      || 0;
+    toplamYanlis     = d.toplamYanlis     || 0;
+    toplamSoruSayisi = d.toplamSoruSayisi || 0;
+    toplamSure       = d.toplamSure       || 0;
   }
 
   document.getElementById("sp-puan").textContent = mevcutKullanici ? toplamPuan : "–";
@@ -1779,13 +1770,20 @@ try {
   db   = firebase.firestore();
   auth = firebase.auth();
 
-  auth.onAuthStateChanged(kullanici => {
+  auth.onAuthStateChanged(async kullanici => {
     mevcutKullanici = kullanici;
+    _cachedStats = null;
     if (kullanici && document.getElementById("auth-overlay").classList.contains("acik")) {
       authModalKapat();
     }
     if (db) lbBaslat();
     kbGuncelle();
+    if (kullanici && db) {
+      try {
+        const doc = await db.collection("kullanicilar").doc(kullanici.uid).get();
+        if (doc.exists) _cachedStats = doc.data();
+      } catch(_) {}
+    }
     anaEkranPanelGuncelle();
   });
 } catch(e) {
@@ -1829,15 +1827,12 @@ function kbGuncelle() {
   kullaniciPuanYukle();
 }
 
-async function kullaniciPuanYukle() {
-  if (!mevcutKullanici || !db) return;
-  try {
-    const doc = await db.collection("kullanicilar").doc(mevcutKullanici.uid).get();
-    const el  = document.getElementById("kb-toplam-puan");
-    if (el) el.textContent = doc.exists
-      ? `⭐ Toplam: ${doc.data().toplamPuan || 0} puan`
-      : "⭐ Toplam: 0 puan";
-  } catch(_) {}
+function kullaniciPuanYukle() {
+  if (!mevcutKullanici) return;
+  const el = document.getElementById("kb-toplam-puan");
+  if (el) el.textContent = _cachedStats
+    ? `⭐ Toplam: ${_cachedStats.toplamPuan || 0} puan`
+    : "⭐ Toplam: 0 puan";
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -2090,6 +2085,7 @@ async function firebaseSkorKaydet(puan) {
     });
     kullaniciPuanYukle();
     anaEkranPanelGuncelle();
+    lbBaslat();
   } catch(e) {
     console.warn("Skor kaydedilemedi:", e);
   }
