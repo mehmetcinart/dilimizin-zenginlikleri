@@ -785,7 +785,7 @@
   <div id="auth-modal">
     <button class="auth-kapat" onclick="authModalKapat()">✕</button>
     <div class="auth-logo">📜</div>
-    <h2 class="auth-baslik">Dilimizin Zenginlikleri</h2>
+    <h2 class="auth-baslik" id="auth-baslik">Dilimizin Zenginlikleri</h2>
     <p class="auth-altyazi" id="auth-altyazi">Giriş yap, puan kazan, sıralamada yüksel!</p>
     <div class="auth-sekme-bar">
       <button class="auth-sekme aktif" id="sekme-giris-btn" onclick="authSekme('giris',this)">Giriş Yap</button>
@@ -1329,36 +1329,42 @@ function anaEkraniGoster() {
 }
 
 async function anaEkranPanelGuncelle() {
-  const rekor   = parseInt(localStorage.getItem(LS_REKOR) || "0");
-  const sonJSON = localStorage.getItem(LS_SON_OYUN);
-  const son     = sonJSON ? JSON.parse(sonJSON) : null;
-
+  const rekor = parseInt(localStorage.getItem(LS_REKOR) || "0");
   document.getElementById("sp-rekor").textContent = rekor;
 
-  // Toplam puanı Firestore'dan çek
-  let toplamPuan = 0;
+  let toplamPuan = 0, toplamDogru = 0, toplamYanlis = 0, toplamSoruSayisi = 0, toplamSure = 0;
   if (mevcutKullanici && db) {
     try {
       const doc = await db.collection("kullanicilar").doc(mevcutKullanici.uid).get();
-      if (doc.exists) toplamPuan = doc.data().toplamPuan || 0;
+      if (doc.exists) {
+        const d = doc.data();
+        toplamPuan       = d.toplamPuan       || 0;
+        toplamDogru      = d.toplamDogru      || 0;
+        toplamYanlis     = d.toplamYanlis     || 0;
+        toplamSoruSayisi = d.toplamSoruSayisi || 0;
+        toplamSure       = d.toplamSure       || 0;
+      }
     } catch(_) {}
   }
-  document.getElementById("sp-puan").textContent = mevcutKullanici ? toplamPuan : (son ? son.puan : "–");
 
-  if (son) {
-    document.getElementById("sp-soru").textContent   = son.toplam + " soru";
-    document.getElementById("sp-dogru").textContent  = son.dogru;
-    document.getElementById("sp-yanlis").textContent = son.yanlis;
-    document.getElementById("sp-sure").textContent   = son.ortSure + "s";
-    const dogruluk = son.toplam > 0 ? Math.round((son.dogru / son.toplam) * 100) : 0;
-    document.getElementById("sp-isi").style.width    = dogruluk + "%";
+  document.getElementById("sp-puan").textContent = mevcutKullanici ? toplamPuan : "–";
+
+  if (toplamSoruSayisi > 0) {
+    const cevaplanan = toplamDogru + toplamYanlis;
+    const ortSure    = cevaplanan > 0 ? Math.round(toplamSure / cevaplanan) : 0;
+    const dogruluk   = Math.round((toplamDogru / toplamSoruSayisi) * 100);
+    document.getElementById("sp-soru").textContent      = toplamSoruSayisi + " soru";
+    document.getElementById("sp-dogru").textContent     = toplamDogru;
+    document.getElementById("sp-yanlis").textContent    = toplamYanlis;
+    document.getElementById("sp-sure").textContent      = ortSure + "s";
+    document.getElementById("sp-isi").style.width       = dogruluk + "%";
     document.getElementById("sp-isi-metin").textContent = "Doğruluk: " + dogruluk + "%";
   } else {
-    document.getElementById("sp-soru").textContent   = "–";
-    document.getElementById("sp-dogru").textContent  = "–";
-    document.getElementById("sp-yanlis").textContent = "–";
-    document.getElementById("sp-sure").textContent   = "–";
-    document.getElementById("sp-isi").style.width    = "0%";
+    document.getElementById("sp-soru").textContent      = "–";
+    document.getElementById("sp-dogru").textContent     = "–";
+    document.getElementById("sp-yanlis").textContent    = "–";
+    document.getElementById("sp-sure").textContent      = "–";
+    document.getElementById("sp-isi").style.width       = "0%";
     document.getElementById("sp-isi-metin").textContent = "Henüz oynanmadı";
   }
 }
@@ -1367,9 +1373,15 @@ function panelGoster(goster) {
   document.getElementById("skor-panel").classList.toggle("gorunsun", goster);
 }
 
+function panelGuncelle() {
+  document.getElementById("sp-dogru").textContent  = durum.dogruSayi;
+  document.getElementById("sp-yanlis").textContent = durum.yanlisSayi;
+}
+
 function rekorKaydet(puan) {
   const rekor = parseInt(localStorage.getItem(LS_REKOR) || "0");
   if (puan > rekor) localStorage.setItem(LS_REKOR, puan);
+  if (typeof firebaseSkorKaydet === 'function') firebaseSkorKaydet(puan);
 }
 
 function sonOyunuKaydet() {
@@ -1435,7 +1447,7 @@ document.querySelectorAll(".zorluk-btn").forEach(btn => {
 //  OYUN BAŞLAT
 // ══════════════════════════════════════════════════════════════
 function oyunuBaslat() {
-  if (!mevcutKullanici) { authModalAc(); return; }
+  if (!mevcutKullanici && auth) { authModalAc(); return; }
   let havuz = [...SORULAR];
   if (durum.seciliKategori !== "tumu") havuz = havuz.filter(s => s.kategori === durum.seciliKategori);
   if (durum.seciliZorluk   !== "tumu") havuz = havuz.filter(s => s.zorluk   === durum.seciliZorluk);
@@ -1642,12 +1654,7 @@ function yenidenOyna() { oyunuBaslat(); }
 function anaEkrana()   { clearInterval(durum.geriSayim); anaEkraniGoster(); }
 
 function testiSonlandirOnay() {
-  const sonSoru = durum.soruIndex >= durum.sorular.length - 1;
-  if (sonSoru && durum.cevaplandi) {
-    sonSoruTamamla();
-    return;
-  }
-  document.getElementById("onay-overlay").classList.add("acik");
+  sonSoruTamamla();
 }
 function testiOnayKapat() {
   document.getElementById("onay-overlay").classList.remove("acik");
@@ -1753,6 +1760,9 @@ try {
 } catch(e) {
   console.warn("Firebase yapılandırılmamış. Çevrimdışı modda çalışılıyor.", e.message);
 }
+// Firebase yüklenmese bile kullanıcı barını ve skor panelini hemen güncelle
+kbGuncelle();
+anaEkranPanelGuncelle();
 
 // ─────────────────────────────────────────────────────────────
 //  KULLANICI BAR
@@ -1909,8 +1919,7 @@ function trHata(kod) {
 }
 
 async function misafirGiris() {
-  if (!auth) { authHata("Firebase yapılandırılmamış."); return; }
-  authModalKapat();
+  if (!auth) { authHata("Firebase bağlantısı yok. Lütfen sayfayı yenileyip tekrar deneyin."); return; }
   try {
     const kred = await auth.signInAnonymously();
     const uid  = kred.user.uid;
@@ -1923,8 +1932,10 @@ async function misafirGiris() {
         kayitTarihi: firebase.firestore.FieldValue.serverTimestamp()
       });
     }
+    authModalKapat();
   } catch(e) {
     console.warn("Misafir girişi başarısız:", e.message);
+    authHata(trHata(e.code) || "Misafir girişi başarısız. Lütfen tekrar deneyin.");
   }
 }
 
@@ -2012,6 +2023,10 @@ async function firebaseSkorKaydet(puan) {
   if (!mevcutKullanici || !db) return;
   try {
     const ref = db.collection("kullanicilar").doc(mevcutKullanici.uid);
+    const oyunDogru      = durum.dogruSayi  || 0;
+    const oyunYanlis     = durum.yanlisSayi || 0;
+    const oyunSoruSayisi = (durum.sorular || []).length;
+    const oyunSure       = durum.toplamSure || 0;
     await db.runTransaction(async t => {
       const doc  = await t.get(ref);
       const data = doc.exists ? doc.data() : { toplamPuan:0, oyunSayisi:0, enIyiSkor:0 };
@@ -2019,28 +2034,23 @@ async function firebaseSkorKaydet(puan) {
         ? "Misafir"
         : (mevcutKullanici.displayName || mevcutKullanici.email);
       t.set(ref, {
-        ad:         adAdi,
-        email:      mevcutKullanici.email || null,
-        misafir:    mevcutKullanici.isAnonymous || false,
-        toplamPuan: (data.toplamPuan || 0) + puan,
-        oyunSayisi: (data.oyunSayisi || 0) + 1,
-        enIyiSkor:  Math.max(data.enIyiSkor || 0, puan),
-        sonOyun:    firebase.firestore.FieldValue.serverTimestamp()
+        ad:              adAdi,
+        email:           mevcutKullanici.email || null,
+        misafir:         mevcutKullanici.isAnonymous || false,
+        toplamPuan:      (data.toplamPuan      || 0) + puan,
+        oyunSayisi:      (data.oyunSayisi      || 0) + 1,
+        enIyiSkor:       Math.max(data.enIyiSkor || 0, puan),
+        toplamDogru:     (data.toplamDogru     || 0) + oyunDogru,
+        toplamYanlis:    (data.toplamYanlis    || 0) + oyunYanlis,
+        toplamSoruSayisi:(data.toplamSoruSayisi|| 0) + oyunSoruSayisi,
+        toplamSure:      (data.toplamSure      || 0) + oyunSure,
+        sonOyun:         firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     });
     kullaniciPuanYukle();
   } catch(e) {
     console.warn("Skor kaydedilemedi:", e);
   }
-}
-
-// sonOyunuKaydet'i override et — Firebase sürümü
-const _orijinalSonucGoster = sonucGoster;
-// Orijinal sonucGoster'in içinde firebaseSkorKaydet çağrılsın diye hook
-const _orijinalRekorKaydet = rekorKaydet;
-function rekorKaydet(puan) {
-  _orijinalRekorKaydet(puan);
-  firebaseSkorKaydet(puan);
 }
 
 // ─────────────────────────────────────────────────────────────
