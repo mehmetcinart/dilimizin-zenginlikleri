@@ -2149,6 +2149,8 @@ async function adminTumIstatistikSil() {
     snap.forEach(doc => batch.delete(doc.ref));
     await batch.commit();
     _cachedStats = null;
+    localStorage.removeItem(LS_REKOR);
+    localStorage.removeItem(LS_SON_OYUN);
     anaEkranPanelGuncelle();
   } catch(e) {
     console.warn("Silme başarısız:", e.message);
